@@ -30,13 +30,13 @@ class CoreRepository
         return $record;
     }
 
-     public function update(Model $model, int $id, array $data): bool
-     {
-         $record = $model::updateOrCreate(
-            ['id' => $id],
-            $data);
+    public function update(Model $model, int $id, array $data): bool
+    {
+        $record = $model::updateOrCreate(
+        ['id' => $id],
+        $data);
         return $record ? true : false;
-     }
+    }
 
      public function delete(Model $model, int $id): bool
      {
