@@ -1,0 +1,8 @@
+{
+    "Core": true,
+    "Authentication": true,
+    "Mock": true,
+    "Auth": true,
+    "Referral": true,
+    "Waitlist": true
+}

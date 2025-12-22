@@ -3,14 +3,23 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Enums\KycStatus;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Modules\Core\Models\UserMeta;
+use Modules\Referral\Models\Referral;
+use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable,HasRoles,HasApiTokens;
+
+    protected $guard_name = 'api';
 
     /**
      * The attributes that are mass assignable.
@@ -21,6 +30,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'kyc_verified_at',
+        'ndpr_consent'
     ];
 
     /**
@@ -43,11 +54,21 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'kyc_status' => KycStatus::class,
+            'kyc_verified_at' => 'datetime',
+            'ndpr_consent' => 'boolean'
+
         ];
     }
 
-    public function posts()
+    public function referrals()
     {
-        return $this->hasMany(Post::class);
+        return $this->hasMany(Referral::class, 'referrer_id');
     }
+
+    public function meta()
+    {
+        return $this->hasOne(UserMeta::class,'user_id');
+    }
+
 }
