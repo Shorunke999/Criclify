@@ -175,7 +175,4 @@ class AuthService
            return $this->error_response($e->getMessage(),$e->getCode() ?: 400);
         }
     }
-
-
-
 }
