@@ -54,6 +54,10 @@ class WaitlistService
                 'referral_link' =>$referralLink
             ], 'Successfully joined the waitlist');
         } catch (Exception $e) {
+            $this->reportError($e,"Waitlist",[
+                    'action' => 'Join Waitlist',
+                    'service' => 'WaitlistService'
+            ]);
             return $this->error_response("Waitlist fails to create: ".$e->getMessage(), $e->getCode() ?: 400);
         }
 
@@ -61,20 +65,30 @@ class WaitlistService
 
     public function export(array $filters)
     {
-        return response()->streamDownload(function () use ($filters) {
-            echo "Name,Email,Referral,Survey\n";
-            $this->entryRepo
-            ->cursorFiltered($filters)
-            ->each(function ($entry) {
+        try{
+            return response()->streamDownload(function () use ($filters) {
+                echo "Name,Email,Referral,Survey\n";
+                $this->entryRepo
+                ->cursorFiltered($filters)
+                ->each(function ($entry) {
 
-                echo implode(',', [
-                    $this->csv($entry->name),
-                    $this->csv($entry->email),
-                    $this->csv($entry->referral_code),
-                    $entry->created_at,
-                ]) . "\n";
-            });
-        }, 'waitlist.csv');
+                    echo implode(',', [
+                        $this->csv($entry->name),
+                        $this->csv($entry->email),
+                        $this->csv($entry->referral_code),
+                        $entry->created_at,
+                    ]) . "\n";
+                });
+            }, 'waitlist.csv');
+        }catch(Exception $e)
+        {
+            $this->reportError($e,"Waitlist",[
+                    'action' => 'Export Waitlist As Csv',
+                    'service' => 'WaitlistService'
+            ]);
+            return $this->error_response("Waitlist fails to export as csv: ".$e->getMessage(), $e->getCode() ?: 400);
+        }
+
     }
 
     private function csv(?string $value): string

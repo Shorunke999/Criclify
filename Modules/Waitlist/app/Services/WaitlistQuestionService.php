@@ -3,6 +3,7 @@
 namespace Modules\Waitlist\Services;
 
 use App\Traits\ResponseTrait;
+use Exception;
 use Modules\Waitlist\Repositories\Contracts\WaitlistQuestionRepositoryInterface;
 
 class WaitlistQuestionService
@@ -15,38 +16,80 @@ class WaitlistQuestionService
 
     public function list()
     {
-        return $this->success_response(
-            $this->repo->all(),
-            'Survey questions fetched'
-        );
+        try{
+            return $this->success_response(
+                $this->repo->all(),
+                'Survey questions fetched'
+            );
+        }catch(Exception $e){
+            $this->reportError($e,"Waitlist",[
+                 'action' => 'list Questions',
+                 'service' => 'WaitlistQuestionService'
+            ]);
+            return $this->error_response('Error Listing Question: '.$e->getMessage(), $e->getCode() ?: 400);
+
+        }
+
     }
 
     public function create(array $data)
     {
-        $question = $this->repo->create($data);
+        try{
+             $question = $this->repo->create($data);
 
-        return $this->success_response(
-            $question,
-            'Survey question created',
-            201
-        );
+            return $this->success_response(
+                $question,
+                'Survey question created',
+                201
+            );
+        }catch(Exception $e)
+        {
+            $this->reportError($e,"Waitlist",[
+                    'action' => 'create Questions',
+                    'service' => 'WaitlistQuestionService'
+            ]);
+            return $this->error_response('Error Creating Question: '.$e->getMessage(), $e->getCode() ?: 400);
+
+        }
+
     }
 
     public function update(int $id, array $data)
     {
-        $this->repo->update($id, $data);
+        try{
+               $this->repo->update($id, $data);
 
-        return $this->success_response([], 'Survey question updated');
+            return $this->success_response([], 'Survey question updated');
+        }catch(Exception $e)
+        {
+            $this->reportError($e,"Waitlist",[
+                    'action' => 'update Question',
+                    'service' => 'WaitlistQuestionService'
+            ]);
+            return $this->error_response('Error Updating Question: '.$e->getMessage(), $e->getCode() ?: 400);
+
+        }
+
     }
 
     public function toggle(int $id)
     {
-        $question = $this->repo->find($id);
+        try{
+            $question = $this->repo->find($id);
 
-        $question->update([
-            'active' => ! $question->active
-        ]);
+            $question->update([
+                'active' => ! $question->active
+            ]);
 
-        return $this->success_response([], 'Survey question status updated');
+            return $this->success_response([], 'Survey question status updated');
+        }catch(Exception $e)
+        {
+            $this->reportError($e,"Waitlist",[
+                    'action' => 'toggle Question',
+                    'service' => 'WaitlistQuestionService'
+            ]);
+            return $this->error_response('Error toggling Question: '.$e->getMessage(), $e->getCode() ?: 400);
+
+        }
     }
 }

@@ -4,7 +4,9 @@ namespace App\Traits;
 
 use App\Enums\LogType;
 use App\Models\Log as ModelsLog;
+use Bugsnag\BugsnagLaravel\Facades\Bugsnag;
 use Illuminate\Support\Facades\Auth;
+use Throwable;
 
 trait ResponseTrait
 {
@@ -27,6 +29,21 @@ trait ResponseTrait
         ], $code);
     }
 
+    public function reportError(
+        Throwable $e,
+        string $module,
+        array $metadata = []
+
+    ):void{
+        Bugsnag::notifyException($e,function($report) use ($module,$metadata){
+            $report->addMetaData([
+                'module'=>[
+                    'name' => $module
+                ],
+                'context' => $metadata
+            ]);
+        });
+    }
     public function logInfo(bool $log, string $message, ?LogType $type = null): bool
     {
         if ($log) {

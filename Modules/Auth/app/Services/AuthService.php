@@ -62,6 +62,9 @@ class AuthService
             return $this->success_response($user, 'Email Verification Sent',201);
         } catch (Exception $e) {
              DB::rollBack();
+             $this->reportError($e,"Auth",[
+                'action' => 'signup',
+             ]);
              return $this->error_response($e->getMessage(),$e->getCode() ?: 400);
         }
     }
@@ -93,6 +96,10 @@ class AuthService
              ];
             return $this->success_response($data, 'Login successful',201);
         } catch (Exception $e) {
+            $this->reportError($e,"Auth",[
+                 'action' => 'login',
+                 'service' => 'authService'
+            ]);
             return $this->error_response($e->getMessage(),$e->getCode() ?: 400);
         }
     }
@@ -112,7 +119,11 @@ class AuthService
             return $this->success_response([], 'Password reset link sent to your email', 200);
 
         } catch (Exception $e) {
-            return $this->error_response($e->getMessage(), 500);
+            $this->reportError($e,"Auth",[
+                'action' => 'forgotPassword',
+                'service' => 'authService'
+            ]);
+            return $this->error_response($e->getMessage(), $e->getCode() ?: 400);
         }
     }
 
@@ -134,7 +145,14 @@ class AuthService
             return $this->success_response([], 'Password reset successful', 200);
 
         } catch (Exception $e) {
-            return $this->error_response($e->getMessage(), 500);
+             $this->reportError($e,"Auth",[
+                'action' => 'verifyEmail',
+            ]);
+            $this->reportError($e,"Auth",[
+                'action' => 'resetPassword',
+                'service' => 'authService'
+            ]);
+            return $this->error_response($e->getMessage(),$e->getCode() ?: 400);
         }
     }
 
@@ -160,6 +178,10 @@ class AuthService
 
             return $this->success_response([], 'Email verified successfully');
         }catch(Exception $e){
+            $this->reportError($e,"Auth",[
+                'action' => 'verifyEmail',
+                'service' => 'authService'
+            ]);
             return $this->error_response($e->getMessage(),$e->getCode() ?: 400);
         }
     }
@@ -172,6 +194,10 @@ class AuthService
             $user->currentAccessToken()->delete();
             return $this->success_response([], 'Logged out successfully',200);
         } catch (Exception $e) {
+            $this->reportError($e,"Auth",[
+                'action' => 'logout',
+                'service' => 'authService'
+            ]);
            return $this->error_response($e->getMessage(),$e->getCode() ?: 400);
         }
     }

@@ -43,6 +43,10 @@ class ReferralService
             ], 'Referral code generated');
         }catch(Exception $e)
         {
+            $this->reportError($e,"Referral",[
+                 'action' => 'generate',
+                 'service' => 'referralervice'
+            ]);
             return $this->error_response('Error when genrating referral code: '.$e->getMessage(), $e->getCode() ?: 500);
         }
     }

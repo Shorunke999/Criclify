@@ -55,6 +55,10 @@ class KycService
             return $this->success_response($data,'Kyc Verification Submitted Successfully.',200);
 
         } catch (Exception $e) {
+             $this->reportError($e,"Auth",[
+                'action' => 'submitVerification',
+                'service' => 'kycService'
+            ]);
             return $this->error_response('KYC verification failed: '.$e->getMessage(),$e->getCode() ?: 500);
         }
     }
@@ -70,6 +74,10 @@ class KycService
              return $this->success_response(['success' => true], 200);
 
         } catch (Exception $e) {
+             $this->reportError($e,"Auth",[
+                'action' => 'handleCallback',
+                'service' => 'kycService'
+            ]);
             return $this->error_response('Callback processing failed.', $e->getCode() ?: 400);
         }
     }
@@ -97,6 +105,10 @@ class KycService
             );
         }catch(Exception $e)
         {
+             $this->reportError($e,"Auth",[
+                'action' => 'getVerification',
+                'service' => 'kycService'
+            ]);
             return $this->error_response('Unable to fetch Verify kyc status:', $e->getCode() ?: 400);
         }
     }
