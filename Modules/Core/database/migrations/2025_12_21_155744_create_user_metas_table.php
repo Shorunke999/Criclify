@@ -22,6 +22,11 @@ return new class extends Migration
             $table->string('referral_code')->nullable()->unique();
             $table->unsignedInteger('referral_count')->default(0);
 
+            //account details
+            $table->string('account_number')->nullable();
+            $table->string('alternate_account_number')->nullable();
+            $table->string('bvn')->nullable();
+
             // Future-safe
             $table->json('data')->nullable();
             $table->timestamps();

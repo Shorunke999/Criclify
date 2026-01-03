@@ -4,5 +4,8 @@
     "Mock": true,
     "Auth": true,
     "Referral": true,
-    "Waitlist": true
+    "Waitlist": true,
+    "Circle": true,
+    "Notification": true,
+    "Payment": true
 }

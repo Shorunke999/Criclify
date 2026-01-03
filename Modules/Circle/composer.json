@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/circle",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Circle\\": "app/",
+            "Modules\\Circle\\Database\\Factories\\": "database/factories/",
+            "Modules\\Circle\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Circle\\Tests\\": "tests/"
+        }
+    }
+}

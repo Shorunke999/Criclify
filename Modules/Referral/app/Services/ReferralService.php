@@ -5,6 +5,9 @@ use App\Enums\ReferralStatus;
 use App\Traits\ResponseTrait;
 use Exception;
 use Illuminate\Support\Str;
+use Modules\Circle\Models\Circle;
+use Modules\Circle\Repositories\Contracts\CircleRepositoryInterface;
+use Modules\Circle\Services\CircleService;
 use Modules\Core\Models\UserMeta;
 use Modules\Core\Repositories\Contracts\UserMetaRepositoryInterface;
 use Modules\Referral\Events\ReferralMilestoneReached;
@@ -19,7 +22,9 @@ class ReferralService
     public function __construct(
         protected ReferralRepositoryInterface $repo,
         protected UserMetaRepositoryInterface $metaRepo,
-        protected WaitlistEntryRepositoryInterface $waitlistEntryRepo
+        protected WaitlistEntryRepositoryInterface $waitlistEntryRepo,
+        protected CircleRepositoryInterface $circleRepo,
+        protected CircleService $circleService
 
     ) {}
 
@@ -69,77 +74,116 @@ class ReferralService
         }
      }
 
-    public function logReferral(UserMeta $meta,string $referralCode)
+    public function logReferralByCode(string $referralCode, int $referredEntityId, string $referredEntityType = 'user')
     {
-        try{
-             $referrerMeta = $this->metaRepo->findBy('referral_code', $referralCode);
+        try {
+            // Determine referral type from code prefix
+            $referralType = $this->determineReferralType($referralCode);
 
-            if (!$referrerMeta) {
-                return;
+            if (!$referralType) {
+                return null; // Invalid code format
             }
 
-            // Prevent self-referral
-            if ($referrerMeta->user_id === $meta->user_id) {
-                return;
-            }
+            // Route to appropriate handler
+            return match($referralType) {
+                'user' => $this->processUserReferral($referralCode, $referredEntityId),
+                'waitlist' => $this->processWaitlistReferral($referralCode, $referredEntityId),
+                default => null
+            };
 
-            // Prevent double referral
-            if ($this->repo->existsForReferred($meta->user_id)) {
-                return;
-            }
-
-            $this->repo->create([
-                'referrer_id' => $referrerMeta->user_id,
-                'referred_id' => $meta->user_id,
-                'referral_type' => 'user'
+        } catch (Exception $e) {
+            $this->reportError($e, 'Referral', [
+                'action' => 'logReferralByCode',
+                'referral_code' => $referralCode,
+                'referred_entity_id' => $referredEntityId,
+                'referred_entity_type' => $referredEntityType,
             ]);
-
-            $referrerMeta->increment('referral_count');
-
-            event(new ReferralMilestoneReached(
-                $referrerMeta->user_id,
-                $referrerMeta->referral_count
-            ));
-        }catch(Exception $e)
-        {
             throw $e;
         }
-
-
     }
 
-    public function logWaitlistReferral(WaitlistEntry $entry,string $referralCode)
+    /**
+     * Determine referral type from code prefix
+     */
+    private function determineReferralType(string $code): ?string
     {
-        try{
-             $referrerEntry = $this->waitlistEntryRepo->findBy('referral_code', $referralCode);
+        return match(true) {
+            str_starts_with($code, 'CRIC_') => 'user',
+            str_starts_with($code, 'WL_') => 'waitlist',
+            default => null
+        };
+    }
 
-            if (!$referrerEntry) {
-                return;
-            }
+    /**
+     * Process user referral
+     */
+    private function processUserReferral(string $referralCode, int $referredUserId): ?array
+    {
+        $referrerMeta = $this->metaRepo->findBy('referral_code', $referralCode);
 
-            // Prevent self-referral
-            if ($entry->id === $referrerEntry->id) {
-                return;
-            }
-
-            $this->repo->create([
-                'referrer_id' => $referrerEntry->id,
-                'referred_id' => $entry->id,
-                'referral_type' => 'waitlist'
-            ]);
-
-            $referrerEntry->increment('referral_count');
-
-            // event(new ReferralMilestoneReached(
-            //     $referrerEntry->id,
-            //     $referrerEntry->referral_count
-            // ));
-        }catch(Exception $e)
-        {
-            throw $e;
+        if (!$referrerMeta) {
+            return null;
         }
 
+        // Prevent self-referral
+        if ($referrerMeta->user_id === $referredUserId) {
+            return null;
+        }
 
+         $this->repo->create([
+            'referrer_id' => $referrerMeta->user_id,
+            'referral_type' => 'user',
+            'referred_id' => $referredUserId,
+        ]);
+
+        $referrerMeta->increment('referral_count');
+
+        event(new ReferralMilestoneReached(
+            $referrerMeta->user_id,
+            $referrerMeta->referral_count
+        ));
+
+        return [
+            'referral_entity' => 'user',
+            'entity_id' => $referrerMeta->user_id,
+            'referral_count' => $referrerMeta->referral_count,
+        ];
+    }
+
+    /**
+     * Process waitlist referral
+     */
+    private function processWaitlistReferral(string $referralCode, int $referredEntryId): ?array
+    {
+        $referrerEntry = $this->waitlistEntryRepo->findBy('referral_code', $referralCode);
+
+        if (!$referrerEntry) {
+            return null;
+        }
+        // Prevent self-referral
+        if ($referrerEntry->id === $referredEntryId) {
+            return null;
+        }
+
+         $this->repo->create([
+            'referrer_id' => $referrerEntry->id,
+            'referrer_type' => 'waitlist',
+            'referred_id' => $referredEntryId,
+        ]);
+
+        $referrerEntry->increment('referral_count');
+
+        event(new ReferralMilestoneReached(
+            $referrerEntry->id,
+            $referrerEntry->referral_count,
+            'waitlist'
+        ));
+
+        return [
+            'referral_entity' => 'waitlist',
+            'entity_id' => $referrerEntry->id,
+            'referral_count' => $referrerEntry->referral_count,
+        ];
     }
 
     public function leaderboard(int $limit = 20)

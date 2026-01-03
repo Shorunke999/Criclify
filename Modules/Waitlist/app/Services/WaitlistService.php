@@ -6,6 +6,7 @@ use App\Traits\ResponseTrait;
 use Exception;
 use Illuminate\Support\Facades\Notification;
 use Modules\Referral\Services\ReferralService;
+use Modules\Waitlist\Events\WaitlistAddedEvent;
 use Modules\Waitlist\Notifications\WaitlistConfirmation;
 use PostHog\PostHog;
 
@@ -31,25 +32,12 @@ class WaitlistService
             //if waitlist was reffered.
             if(!empty($data['referral_code']))
             {
-                 $this->referralService->logWaitlistReferral($entry,$data['referral_code']);
+                 $this->referralService->logReferralByCode($data['referral_code'],$entry->id, 'waitlist');
             }
 
             $newWaitlistCode = $this->referralService->waitlistCodeGenerate($entry);
             $referralLink = config('app.base_url')."/".$newWaitlistCode;
-
-            // Email confirmation
-            // Notification::route('mail', $entry->email)
-            //     ->notify(new WaitlistConfirmation($entry));
-
-            // Posthog
-            // PostHog::capture([
-            //     'distinctId' => $entry->email,
-            //     'event' => 'WaitlistJoined',
-            //     'properties' => [
-            //         'has_referral' => (bool) $entry->referral_code,
-            //     ],
-            // ]);
-
+            event(new WaitlistAddedEvent($entry));
             return $this->success_response([
                 'referral_link' =>$referralLink
             ], 'Successfully joined the waitlist');

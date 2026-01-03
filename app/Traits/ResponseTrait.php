@@ -35,7 +35,8 @@ trait ResponseTrait
         array $metadata = []
 
     ):void{
-        Bugsnag::notifyException($e,function($report) use ($module,$metadata){
+        Bugsnag::notifyException($e,function($report) use ($module,$metadata,$e){
+            $report->setContext($e->getMessage());
             $report->addMetaData([
                 'module'=>[
                     'name' => $module

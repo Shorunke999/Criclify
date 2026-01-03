@@ -20,9 +20,12 @@ class Referral extends Model
         'referral_type'
     ];
 
-
+    protected $hidden = [
+        'created_at',
+        'updated_at'
+    ];
     // protected static function newFactory(): ReferralFactory
     // {
-    //     // return ReferralFactory::new();
+    //      return ReferralFactory::new();
     // }
 }

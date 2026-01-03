@@ -5,6 +5,7 @@ namespace App\Providers;
 use Bugsnag\BugsnagLaravel\Facades\Bugsnag;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
+use PostHog\PostHog;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +22,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        PostHog::init(
+            config('services.posthog.api_key'),
+            [
+                'host' => config('services.posthog.host'),
+            ]
+        );
         Bugsnag::registerCallback(function($report){
             $report->addMetaData([
                 'app' => [

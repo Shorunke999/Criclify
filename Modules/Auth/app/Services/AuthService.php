@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Password;
 use App\Enums\KycStatus;
 use App\Traits\ResponseTrait;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Modules\Auth\Events\SignupSucessfullEvent;
+use Modules\Circle\Repositories\Contracts\CircleInviteRepositoryInterface;
 use Modules\Core\Events\AuditLogged;
 use Modules\Core\Repositories\Contracts\UserMetaRepositoryInterface;
 use Modules\Referral\Services\ReferralService;
@@ -17,16 +20,12 @@ use Modules\Referral\Services\ReferralService;
 class AuthService
 {
     use ResponseTrait;
-    protected AuthRepositoryInterface $authRepo;
-    protected UserMetaRepositoryInterface $metaRepo;
-    protected ReferralService $referralService;
 
-    public function __construct(AuthRepositoryInterface $authRepo,UserMetaRepositoryInterface $metaRepo, ReferralService $referralService)
-    {
-        $this->authRepo = $authRepo;
-        $this->metaRepo = $metaRepo;
-        $this->referralService = $referralService;
-    }
+    public function __construct(protected AuthRepositoryInterface $authRepo,
+    protected UserMetaRepositoryInterface $metaRepo,
+    protected ReferralService $referralService,
+    protected CircleInviteRepositoryInterface $inviteRepo)
+    {}
 
     /**
      * Handle user signup
@@ -38,15 +37,20 @@ class AuthService
             $data['password'] = Hash::make($data['password']);
             $user = $this->authRepo->create($data);
             $user->assignRole('user');
-            $user->sendEmailVerificationNotification();
-            $meta = $this->metaRepo->create([
+            $this->metaRepo->create([
                 'user_id' => $user->id
             ]);
+            $referralData = null;
             if(!empty($data['referral_code']))
             {
-                $this->referralService->logReferral($meta,$data['referral_code']);
+                $referralData = $this->referralService->logReferralByCode(
+                    $data['referral_code'],
+                    $user->id,
+                    'user'
+                );
             }
-
+            $this->inviteRepo->linkInviteToUser($user);
+            event(new SignupSucessfullEvent($user)); //for posthog
             event(new AuditLogged(
                 userId: $user->id,
                 action: AuditAction::NDPR_CONSENT_GIVEN->value,
@@ -58,10 +62,20 @@ class AuthService
                 ],
                 version: null
             ));
+            //send email verification.
+            $user->sendEmailVerificationNotification();
              DB::commit();
-            return $this->success_response($user, 'Email Verification Sent',201);
+
+            return $this->success_response([
+                'user' => $user,
+                'referral_info' => $referralData, // Return referral info
+            ], 'Email Verification Sent',201);
         } catch (Exception $e) {
              DB::rollBack();
+              Log::info('signup ',[
+                'error' => $e->getMessage(),
+                'code' => $e->getCode() ?: 400
+            ]);
              $this->reportError($e,"Auth",[
                 'action' => 'signup',
              ]);
@@ -82,17 +96,18 @@ class AuthService
 
             $user = Auth::user();
             $token = $user->createToken('api-token')->plainTextToken;
+            $this->inviteRepo->inAppNotifyPendingInvites($user);
             $nextStep = 'none';
 
             if (! $user->hasVerifiedEmail()) {
-                $nextStep = 'email_verification';
+                return $this->error_response('Email not verified', 403);
             } elseif ($user->kyc_status !== KycStatus::VERIFIED) {
                 $nextStep = $user->kyc_status->nextStep();
             }
             $data = [
-                    'user' => $user,
-                    'token' => $token,
-                    'next_step' => $nextStep
+                'token' => $token,
+                'next_step' => $nextStep,
+                'user' => $user
              ];
             return $this->success_response($data, 'Login successful',201);
         } catch (Exception $e) {
