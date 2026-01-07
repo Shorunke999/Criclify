@@ -1,5 +1,5 @@
 # Builds a dev-only layer on top of the production image
-FROM production AS development
+FROM php:8.4-fpm AS development
 
 # Use ARGs to define environment variables passed from the Docker build command or Docker Compose.
 ARG XDEBUG_ENABLED=false
@@ -47,7 +47,8 @@ WORKDIR /var/www
 
 # Copy the entrypoint script
 COPY ./docker/development/php-fpm/entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/entrypoint.sh
 
 # Switch back to the non-privileged user to run the application
 USER www-data
