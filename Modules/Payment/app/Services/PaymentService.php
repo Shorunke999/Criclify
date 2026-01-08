@@ -11,19 +11,21 @@ use Modules\Circle\Repositories\Contracts\ContributionRepositoryInterface;
 use Modules\Core\Events\AuditLogged;
 use Modules\Payment\Enums\TransactionStatusEnum;
 use Modules\Payment\Enums\TransactionTypeEnum;
-use Modules\Payment\Repositories\Contracts\PaymentProviderInterface;
+use Modules\Payment\Managers\PaymentManager;
 use Modules\Payment\Repositories\Contracts\TransactionRepositoryInterface;
 
 class PaymentService
 {
     use ResponseTrait;
-
+    protected $provider;
     public function __construct(
         protected TransactionRepositoryInterface $transactionRepo,
         protected ContributionRepositoryInterface $contributionRepo,
         protected CircleWalletRepository $walletRepo,
-        protected PaymentProviderInterface $provider
-    ) {}
+        protected PaymentManager $manager
+    ) {
+        $this->provider = $this->manager->driver(config('app.payment_driver','paystack'));
+    }
 
     /**
      * Initialize payment
@@ -38,7 +40,6 @@ class PaymentService
                 'status' => TransactionStatusEnum::Pending,
             ]));
 
-            // Send to provider (paystack later)
             $providerResponse = $this->provider->initialize([
                 'amount' => $transaction->amount,
                 'reference' => $reference,

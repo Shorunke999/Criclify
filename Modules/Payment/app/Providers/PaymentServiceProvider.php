@@ -4,9 +4,8 @@ namespace Modules\Payment\Providers;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
-use Modules\Payment\Integrations\Providers\PaystackProvider;
-use Modules\Payment\Models\Transaction;
-use Modules\Payment\Repositories\Contracts\PaymentProviderInterface;
+use Modules\Payment\Integrations\Service\PaystackService;
+use Modules\Payment\Managers\Contracts\PaymentContract;
 use Modules\Payment\Repositories\Contracts\TransactionRepositoryInterface;
 use Modules\Payment\Repositories\TransactionRepository;
 use Nwidart\Modules\Traits\PathNamespace;
@@ -42,8 +41,8 @@ class PaymentServiceProvider extends ServiceProvider
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
          $this->app->bind(
-            PaymentProviderInterface::class,
-            PaystackProvider::class
+            PaymentContract::class,
+            PaystackService::class
         );
         $this->app->bind(TransactionRepositoryInterface::class, TransactionRepository::class);
     }

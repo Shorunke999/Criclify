@@ -1,15 +1,17 @@
 <?php
-namespace Modules\Payment\Integrations\Providers;
+namespace Modules\Payment\Integrations\Service;
 
 use Illuminate\Http\Request;
 use Modules\Payment\Integrations\Clients\PaystackClient;
-use Modules\Payment\Repositories\Contracts\PaymentProviderInterface;
+use Modules\Payment\Managers\Contracts\PaymentContract;
 
-class PaystackProvider implements PaymentProviderInterface
+class PaystackService implements PaymentContract
 {
+    protected $client;
     public function __construct(
-        protected PaystackClient $client
-    ) {}
+    ) {
+        $this->client = new PaystackClient();
+    }
 
     public function initialize(array $payload): array
     {
