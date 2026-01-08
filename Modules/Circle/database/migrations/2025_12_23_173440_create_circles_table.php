@@ -28,7 +28,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['creator_id', 'status']);
-            $table->index(['rotation_type', 'status']);
         });
     }
 

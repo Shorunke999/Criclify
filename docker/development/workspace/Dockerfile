@@ -76,12 +76,23 @@ USER www
 # RUN echo 'export NVM_DIR="$HOME/.nvm"' >> /home/www/.bashrc && \
 #     echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /home/www/.bashrc && \
 #     echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /home/www/.bashrc
-
-# Set the working directory
+# Set working directory
 WORKDIR /var/www
 
-# Override the entrypoint to avoid the default php entrypoint
-ENTRYPOINT []
+# MUST be root here
+USER root
+
+# Copy entrypoint
+COPY ./docker/development/workspace/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+# Fix line endings + permissions
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/entrypoint.sh
+
+#  Switch back to non-root
+USER www
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Default command to keep the container running
 CMD ["bash"]
