@@ -20,7 +20,7 @@ class AuthController extends Controller
     }
 
     /**
-     * POST /api/auth/signup
+     * Sign up a new user
      */
     public function signup(SignupRequest $request)
     {
@@ -28,7 +28,7 @@ class AuthController extends Controller
     }
 
     /**
-     * POST /api/auth/login
+     * Login user
      */
     public function login(LoginRequest $request)
     {
@@ -36,20 +36,21 @@ class AuthController extends Controller
     }
 
     /**
-     * POST /api/auth/forgot-password
+     * Forgot password
      */
     public function forgotPassword(ForgetPassword $request)
     {
         return $this->authService->forgotPassword($request->validated());
     }
-
+    /**
+     * Reset password
+     */
     public function resetPassword(ResetPasswordRequest $request)
     {
         return $this->authService->resetPassword($request->validated());
     }
     /**
-     * POST /api/auth/logout
-     * Requires Sanctum auth middleware
+     * Logout user
      */
     public function logout(Request $request)
     {
@@ -59,7 +60,6 @@ class AuthController extends Controller
     }
 
     /**
-     * GET /api/auth/email/verify/{id}/{hash}
      * Verify email endpoint
      */
     public function verifyEmail($id, $hash)

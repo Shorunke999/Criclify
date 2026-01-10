@@ -14,16 +14,24 @@ class KycController extends Controller
         protected KycService $kycService
     ) {}
 
+    /**
+     * Submit KYC verification
+     */
     public function submitVerification(SubmitVerification $request)
     {
         return $this->kycService->submitVerification($request->validated());
     }
-
+    /**
+     * Handle KYC provider callback
+     */
     public function handleCallback(Request $request)
     {
         return $this->kycService->handleCallback($request);
     }
 
+    /**
+     * Get KYC verification status
+     */
     public function getVerificationStatus()
     {
        return $this->kycService->getVerificationStatus();

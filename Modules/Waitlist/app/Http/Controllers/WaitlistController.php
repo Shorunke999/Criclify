@@ -12,11 +12,17 @@ class WaitlistController extends Controller
         protected WaitlistService $service
     ) {}
 
+    /**
+     * Join the waitlist
+     */
     public function store(JoinWaitlistRequest $request)
     {
         return $this->service->join($request->validated());
     }
 
+    /**
+     * Export waitlist data
+     */
     public function export(WaitlistExportRequest $request)
     {
         return $this->service->export($request->validated());

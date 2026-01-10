@@ -13,7 +13,7 @@ class ReferralController extends Controller
     ) {}
 
     /**
-     * GET /api/referral/code
+     * Generate a referral code for the authenticated useer or waitliat
      */
     public function generate()
     {
@@ -21,8 +21,7 @@ class ReferralController extends Controller
     }
 
     /**
-     * GET /api/referral/leaderboard
-     * (Admin or public – your choice)
+     * Get the referral leaderboard
      */
     public function leaderboard()
     {

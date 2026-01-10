@@ -1,0 +1,128 @@
+DOCKER SETUP INSTRUCTIONS FOR CRICLIFY (PRODUCTION)
+
+======================================
+
+These instructions will help you set up the production environment using Docker and Docker Compose.
+
+STEP 1: Copy Compose File
+
+Copy the production Docker Compose file to your project root. This will be your main production compose file.
+
+Example (Windows PowerShell):
+
+copy .\docker\development\compose.prod.yaml .\compose.prod.yaml
+
+
+Modify the Nginx configuration to use the actual domain name of your website:
+
+server {
+    listen 80;
+    server_name yourdomain.com; # <-- change to your website domain
+    root /var/www/public;
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass php-fpm:9000;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+
+STEP 2: Configure .env.prod
+
+Create a production environment file .env.prod in your project root.
+
+Update the database and other credentials for production:
+
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=app
+DB_USERNAME=laravel
+DB_PASSWORD=<STRONG_PASSWORD>
+
+
+⚠️ Use strong passwords for DB_PASSWORD and MYSQL_ROOT_PASSWORD. You can optionally use Docker secrets for extra security.
+
+STEP 3: Build and Start Docker Containers
+
+Open a terminal in the project root directory.
+
+Build and start all containers in detached mode:
+
+docker compose -f compose.prod.yaml up --build -d
+
+
+Verify that all services are running:
+
+docker compose -f compose.prod.yaml ps
+
+
+You should see at least these services:
+
+mysql
+
+php-fpm
+
+workspace (optional, can be skipped in production)
+
+laravel.test (Nginx)
+
+redis
+
+STEP 4: Run Database Migrations & Composer
+
+In production, you do NOT want to run composer install or php artisan migrate automatically every time.
+
+Run migrations manually once after first deploy:
+
+docker compose -f compose.prod.yaml exec php-fpm php artisan migrate --force
+
+
+Install Composer dependencies if not already built into the image:
+
+docker compose -f compose.prod.yaml exec php-fpm composer install --no-dev --optimize-autoloader
+
+
+Clear and cache configurations for optimal performance:
+
+docker compose -f compose.prod.yaml exec php-fpm php artisan config:cache
+docker compose -f compose.prod.yaml exec php-fpm php artisan route:cache
+docker compose -f compose.prod.yaml exec php-fpm php artisan view:cache
+
+
+✅ Once your image is built and deployed, these steps are usually only needed on new deployments or migrations.
+
+STEP 5: Stopping Containers
+
+To stop all running containers:
+
+docker compose -f compose.prod.yaml down
+
+
+⚠️ This will stop the containers but does not remove your MySQL volume, so your data persists.
+
+STEP 6: Subsequent Usage
+
+For normal start/stop of production services:
+
+docker compose -f compose.prod.yaml up -d   # start containers
+docker compose -f compose.prod.yaml down    # stop containers
+
+
+If you change Dockerfiles or compose configuration, rebuild first:
+
+docker compose -f compose.prod.yaml up --build -d

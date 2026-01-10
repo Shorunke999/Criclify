@@ -1,0 +1,86 @@
+DOCKER SETUP INSTRUCTIONS FOR CRICLIFY
+======================================
+
+These instructions will help you set up the development environment using Docker and Docker Compose.
+
+STEP 1: Copy Compose File
+-------------------------
+1. Copy `docker/development/compose.dev.yaml` to the root of your project directory.
+   This will be your main Docker Compose file.
+
+   Example (Windows PowerShell):
+   --------------------------------
+   copy .\docker\development\compose.dev.yaml .\compose.dev.yaml
+
+STEP 2: Build and Start Docker Containers
+-----------------------------------------
+1. Open a terminal in the project root directory.
+2. Build and start all containers in detached mode:
+
+   Command:
+   --------------------------------
+   docker compose -f compose.dev.yaml up --build -d
+
+3. Verify that all services are running:
+
+   Command:
+   --------------------------------
+   docker compose ps
+
+   You should see at least these services:
+   - mysql
+   - php-fpm
+   - workspace
+   - laravel.test (nginx)
+   - redis
+
+STEP 3: Open Workspace Terminal
+-------------------------------
+The workspace container is where you can run Artisan, Composer, and other CLI commands.
+
+1. Open a terminal into the workspace container:
+
+   Command:
+   --------------------------------
+   docker exec -it criclify-workspace-1 bash
+
+2. Inside the workspace container, you can:
+   - Run Laravel commands, e.g., `php artisan migrate`
+   - Run Composer commands, e.g., `composer install`
+   - Explore the project code
+
+STEP 4: Stopping Containers
+---------------------------
+1. To stop all running containers:
+
+   Command:
+   --------------------------------
+   docker compose -f compose.dev.yaml down
+
+STEP 5: Subsequent Usage
+------------------------
+1. For future development sessions:
+   - Start all services (no rebuild needed unless Dockerfile changes):
+
+     docker compose -f compose.dev.yaml up -d
+
+   - Access the workspace terminal:
+
+     docker exec -it criclify-workspace-1 bash
+
+   - Access the app in your browser at:
+
+     http://127.0.0.1:8080/
+
+2. If you change Dockerfiles or the compose file, rebuild with:
+
+   docker compose -f compose.dev.yaml up --build -d
+
+NOTE: Ensure the `.env` file exists in the root directory with the correct database credentials:
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=app
+DB_USERNAME=laravel
+DB_PASSWORD=secret

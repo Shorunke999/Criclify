@@ -27,7 +27,9 @@ class ContributionController extends Controller
             )
         );
     }
-
+    /**
+     * List contributions for a specific circle
+     */
     public function circleContributions(
     int $circleId,
     ListContributionRequest $request
@@ -40,6 +42,9 @@ class ContributionController extends Controller
         );
     }
 
+    /**
+     * List contributions based on filters
+     */
     public function index(ListContributionRequest $request)
     {
         return $this->contributionService->listContributions(
@@ -47,6 +52,9 @@ class ContributionController extends Controller
         );
     }
 
+    /**
+     * Pay for a contribution
+     */
     public function pay(PayContributionRequest $request, int $member)
     {
         return $this->contributionService->payForContribution(
