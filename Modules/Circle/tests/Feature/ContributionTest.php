@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Event;
 use Modules\Core\Events\AuditLogged;
 use Modules\Payment\Enums\TransactionStatusEnum;
 use Modules\Payment\Enums\TransactionTypeEnum;
+use Modules\Payment\Integrations\Service\PaystackService;
 
 class ContributionTest extends TestCase
 {
@@ -107,15 +108,6 @@ class ContributionTest extends TestCase
     {
         $this->actingAsUser();
 
-        // Mock provider
-        $this->mock(\Modules\Payment\Repositories\Contracts\PaymentProviderInterface::class, function ($mock) {
-            $mock->shouldReceive('initialize')
-                ->once()
-                ->andReturn([
-                    'authorization_url' => 'https://paystack.test/authorize',
-                ]);
-        });
-
         $circle = Circle::factory()->create();
         $member = CircleMember::factory()->create([
             'circle_id' => $circle->id,
@@ -187,14 +179,27 @@ class ContributionTest extends TestCase
             'status' => TransactionStatusEnum::Pending,
         ]);
 
-        // Mock provider webhook
-        $this->mock(\Modules\Payment\Repositories\Contracts\PaymentProviderInterface::class, function ($mock) {
-            $mock->shouldReceive('webhook')
-                ->once()
-                ->andReturn('ref-123');
-        });
+        $payload = [
+            'event' => 'charge.success',
+            'data' => [
+                'reference' => 'ref-123',
+            ],
+        ];
+        $signature = hash_hmac(
+            'sha512',
+            json_encode($payload),
+            config('payment.paystack.secret_key')
+        );
 
-        $response = $this->postJson('/api/payment/webhooks', []);
+
+        $response = $this->postJson(
+            '/api/payment/webhooks',
+            $payload,
+            [
+                'x-paystack-signature' => $signature,
+            ]
+        );
+
 
         $response->assertOk();
 
@@ -243,15 +248,26 @@ class ContributionTest extends TestCase
             'status' => TransactionStatusEnum::Pending,
         ]);
 
-         // Mock provider webhook
-        $this->mock(\Modules\Payment\Repositories\Contracts\PaymentProviderInterface::class, function ($mock) {
-            $mock->shouldReceive('webhook')
-                ->once()
-                ->andReturn('partial-ref');
-        });
+         $payload = [
+            'event' => 'charge.success',
+            'data' => [
+                'reference' => 'partial-ref',
+            ],
+        ];
+        $signature = hash_hmac(
+            'sha512',
+            json_encode($payload),
+            config('payment.paystack.secret_key')
+        );
 
 
-        $response = $this->postJson('/api/payment/webhooks', []);
+        $response = $this->postJson(
+            '/api/payment/webhooks',
+            $payload,
+            [
+                'x-paystack-signature' => $signature,
+            ]
+        );
 
         $response->assertOk();
 
