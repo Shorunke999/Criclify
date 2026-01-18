@@ -13,6 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Modules\Core\Models\UserMeta;
 use Modules\Referral\Models\Referral;
 use Spatie\Permission\Traits\HasRoles;
+use Modules\Core\Models\Wallet;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -69,6 +70,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function meta()
     {
         return $this->hasOne(UserMeta::class,'user_id');
+    }
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class,'user_id');
     }
 
 }

@@ -12,9 +12,9 @@ use Modules\Circle\Database\Factories\CircleFactory;
 use Modules\Circle\Enums\{
     CircleStatusEnum,
     CircleIntervalEnum,
-    PositionSelectionMethodEnum,
-    StatusEnum
+    PositionSelectionMethodEnum
 };
+use Modules\Core\Models\Wallet;
 
 class Circle extends Model
 {
@@ -63,7 +63,7 @@ class Circle extends Model
 
     public function wallet()
     {
-        return $this->hasOne(CircleWallet::class);
+        return $this->hasOne(Wallet::class,'circle_id');
     }
 
     public function invites()

@@ -16,6 +16,7 @@ use Modules\Circle\Repositories\Contracts\CircleInviteRepositoryInterface;
 use Modules\Core\Events\AuditLogged;
 use Modules\Core\Repositories\Contracts\UserMetaRepositoryInterface;
 use Modules\Referral\Services\ReferralService;
+use Modules\Core\Enums\WalletTypeEnum;
 
 class AuthService
 {
@@ -36,10 +37,17 @@ class AuthService
         try {
             $data['password'] = Hash::make($data['password']);
             $user = $this->authRepo->create($data);
+            //assign role
             $user->assignRole('user');
+
+            //create wallet
+            $user->wallet()->create([
+                'type' => WalletTypeEnum::User
+            ]);
             $this->metaRepo->create([
                 'user_id' => $user->id
             ]);
+
             $referralData = null;
             if(!empty($data['referral_code']))
             {
@@ -107,7 +115,7 @@ class AuthService
             $data = [
                 'token' => $token,
                 'next_step' => $nextStep,
-                'user' => $user
+                'user' => $user->load('wallet:balance')
              ];
             return $this->success_response($data, 'Login successful',201);
         } catch (Exception $e) {

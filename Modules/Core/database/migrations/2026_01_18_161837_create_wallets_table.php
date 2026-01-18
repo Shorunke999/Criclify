@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('circle_wallets', function (Blueprint $table) {
+         Schema::create('wallets', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('circle_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('circle_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
 
             $table->decimal('balance', 18, 2)->default(0);
-
+            $table->string('type');
             $table->string('currency', 3)->default('NGN');
 
             $table->timestamps();
 
             $table->unique('circle_id');
+            $table->unique('user_id');
         });
     }
 
@@ -30,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('circle_wallets');
+        Schema::dropIfExists('wallets');
     }
 };

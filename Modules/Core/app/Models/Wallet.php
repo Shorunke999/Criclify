@@ -1,29 +1,29 @@
 <?php
 
-namespace Modules\Circle\Models;
+namespace Modules\Core\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Modules\Circle\Database\Factories\CircleWalletFactory;
+use Modules\Core\Enums\WalletTypeEnum;
+use Modules\Circle\Models\Circle;
+use App\Models\User;
+// use Modules\Core\Database\Factories\WalletFactory;
 
-// use Modules\Circle\Database\Factories\CircleWalletFactory;
-
-class CircleWallet extends Model
+class Wallet extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
      protected $fillable = [
         'circle_id',
+        'user_id',
         'balance',
         'currency',
+        'type'
     ];
 
     protected $casts = [
         'balance' => 'decimal:2',
-        'locked_balance' => 'decimal:2',
+        'type' => WalletTypeEnum::class
     ];
 
     protected $hidden = [
@@ -35,9 +35,8 @@ class CircleWallet extends Model
     {
         return $this->belongsTo(Circle::class);
     }
-
-    protected static function newFactory(): CircleWalletFactory
+    public function user()
     {
-         return CircleWalletFactory::new();
+        return $this->belongsTo(User::class);
     }
 }

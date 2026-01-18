@@ -12,18 +12,14 @@ use Modules\Circle\Models\{
 };
 use Modules\Circle\Enums\{
     StatusEnum,
-    CircleStatusEnum
 };
 use Modules\Circle\Services\ContributionService;
-use Carbon\Carbon;
-
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Modules\Core\Events\AuditLogged;
 use Modules\Payment\Enums\TransactionStatusEnum;
 use Modules\Payment\Enums\TransactionTypeEnum;
-use Modules\Payment\Integrations\Service\PaystackService;
-
+use Modules\Core\Enums\WalletTypeEnum;
 class ContributionTest extends TestCase
 {
     use RefreshDatabase;
@@ -155,7 +151,9 @@ class ContributionTest extends TestCase
         Event::fake();
 
         $circle = Circle::factory()->create();
-        $circle->wallet()->create();
+        $circle->wallet()->create([
+            'type' => WalletTypeEnum::Circle
+        ]);
         $member = CircleMember::factory()->create([
             'circle_id' => $circle->id,
             'user_id' => $this->user->id,
@@ -224,7 +222,11 @@ class ContributionTest extends TestCase
         $this->actingAsUser();
         Event::fake();
         $circle = Circle::factory()->create();
-        $circle->wallet()->create();
+        $circle->wallet()->create(
+            [
+                'type'=> WalletTypeEnum::Circle
+            ]
+        );
         $member = CircleMember::factory()->create([
             'circle_id' => $circle->id,
             'user_id' => $this->user->id,

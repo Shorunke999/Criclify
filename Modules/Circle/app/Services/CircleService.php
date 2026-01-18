@@ -17,6 +17,7 @@ use Modules\Circle\Enums\InviteStatusEnum;
 use Modules\Circle\Events\CreateContributionsEvent;
 use Modules\Circle\Events\SendCircleInvite;
 use Modules\Core\Events\AuditLogged;
+use Modules\Core\Enums\WalletTypeEnum;
 
 class CircleService
 {
@@ -32,7 +33,9 @@ class CircleService
         try {
             DB::beginTransaction();
             $circle = $this->circleRepository->createCircle($data, $creatorId);
-            $circle->wallet()->create();
+            $circle->wallet()->create([
+                'type' =>WalletTypeEnum::Circle
+            ]);
             // Dispatch event
             event(new AuditLogged(
                 action: AuditAction::CIRCLE_CREATED->value,
