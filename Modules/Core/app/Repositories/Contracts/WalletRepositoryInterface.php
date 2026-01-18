@@ -5,9 +5,9 @@ namespace Modules\Core\Repositories\Contracts;
 
 use Modules\Core\Repositories\Contracts\BaseRepositoryInterface;
 use Modules\Core\Enums\WalletTypeEnum;
+use Modules\Core\Models\Wallet;
 
 interface WalletRepositoryInterface extends BaseRepositoryInterface
 {
-    public function creditWallet(int $id, float $amount,WalletTypeEnum $type): void;
-    public function debitWallet(int $id, float $amount,WalletTypeEnum $type): void;
+    public function wallet(int $id, float $amount,WalletTypeEnum $type): Wallet;
 }

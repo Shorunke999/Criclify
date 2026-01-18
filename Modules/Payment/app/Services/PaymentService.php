@@ -6,7 +6,6 @@ use Illuminate\Support\Str;
 use App\Traits\ResponseTrait;
 use Illuminate\Support\Facades\Log;
 use Modules\Circle\Enums\StatusEnum;
-use Modules\Core\Repositories\WalletRepository;
 use Modules\Circle\Repositories\Contracts\ContributionRepositoryInterface;
 use Modules\Core\Events\AuditLogged;
 use Modules\Payment\Enums\TransactionStatusEnum;
@@ -14,6 +13,7 @@ use Modules\Payment\Enums\TransactionTypeEnum;
 use Modules\Payment\Managers\PaymentManager;
 use Modules\Payment\Repositories\Contracts\TransactionRepositoryInterface;
 use Modules\Core\Enums\WalletTypeEnum;
+use Modules\Core\Services\WalletService;
 
 class PaymentService
 {
@@ -22,7 +22,7 @@ class PaymentService
     public function __construct(
         protected TransactionRepositoryInterface $transactionRepo,
         protected ContributionRepositoryInterface $contributionRepo,
-        protected WalletRepository $walletRepo,
+        protected WalletService $walletService,
         protected PaymentManager $manager
     ) {
         $this->provider = $this->manager->driver(config('app.payment_driver','paystack'));
@@ -130,7 +130,7 @@ class PaymentService
                     'paid_at' => now(),
                 ]);
 
-                $this->walletRepo->creditWallet(
+                $this->walletService->creditWallet(
                     $contribution->circle_id,
                     $due,
                     WalletTypeEnum::Circle
@@ -145,7 +145,7 @@ class PaymentService
                     'status' => StatusEnum::Partpayment,
                 ]);
 
-                $this->walletRepo->creditWallet(
+                $this->walletService->creditWallet(
                     $contribution->circle_id,
                     $amountRemaining,
                     WalletTypeEnum::Circle

@@ -1,0 +1,11 @@
+{
+    "name": "Vault",
+    "alias": "vault",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Vault\\Providers\\VaultServiceProvider"
+    ],
+    "files": []
+}

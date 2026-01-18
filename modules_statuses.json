@@ -7,5 +7,6 @@
     "Waitlist": true,
     "Circle": true,
     "Notification": true,
-    "Payment": true
+    "Payment": true,
+    "Vault": true
 }
