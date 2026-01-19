@@ -21,4 +21,5 @@ enum AuditAction: string
     case CONTRIBUTION_PAID = 'contribution_paid';
 
     case VAULT_CREATED   = 'vault_created';
+    case VAULT_DISBUSED = 'vault_disbursed';
 }

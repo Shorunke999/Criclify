@@ -10,7 +10,7 @@ use Illuminate\Support\LazyCollection;
 use Modules\Vault\Models\Vault;
 use Modules\Payment\Models\Transaction;
 use Modules\Payment\Enums\TransactionTypeEnum;
-
+use  Modules\Vault\Enums\VaultStatusEnum;
 
 class VaultRepository extends CoreRepository implements VaultRepositoryInterface
 {
@@ -50,6 +50,13 @@ class VaultRepository extends CoreRepository implements VaultRepositoryInterface
     public function getVaultPayments(int $vaultId){
         return Transaction::where('type',TransactionTypeEnum::Vault)
                 ->where('type_ids', [$vaultId])->get();
+     }
+
+     public function maturedAndCompletedVault():Vault
+     {
+        return $this->model->where('status',VaultStatusEnum::COMPLETED)
+                ->where('maturity_date','<',now())
+                ->get();
      }
 
 }

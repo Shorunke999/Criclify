@@ -13,4 +13,5 @@ interface VaultRepositoryInterface extends BaseRepositoryInterface
     public function getUserVaults(int $userId, array $filters = []);
     public function createVault(array $data, int $ownerId): Vault;
     public function getVaultPayments(int $vaultId);
+    public function maturedAndCompletedVault():Vault;
 }

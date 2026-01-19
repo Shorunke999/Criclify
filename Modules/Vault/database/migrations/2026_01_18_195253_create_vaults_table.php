@@ -15,14 +15,18 @@ return new class extends Migration
             $table->id();
             $table->string('description');
             $table->foreignId('owner_id')->constrained()->cascadeOnDelete();
-            $table->string('status');
-            $table->decimal('total_amount')->default(0);
-            $table->string('interval');
+
+            $table->string('status'); // active, completed, defaulted
+            $table->decimal('total_amount', 18, 2);
+            $table->decimal('interval_amount', 18, 2);
+
+            $table->string('interval'); // daily, weekly, monthly
+            $table->integer('duration'); // number of intervals
+
             $table->boolean('oweing')->default(false);
-            $table->integer('no_of_save')->default(0);
-            $table->timestamp('start_date')->nullable();
-            $table->timestamp('maturity_date')->nullable();
-            $table->timestamp('last_save')->nullable();
+
+            $table->timestamp('start_date');
+            $table->timestamp('maturity_date');
             $table->timestamps();
         });
     }

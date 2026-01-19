@@ -4,53 +4,52 @@ namespace Modules\Vault\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
+use Modules\Vault\Services\VaultService;
+use Modules\Vault\Http\Requests\StoreVaultRequest;
+use Modules\Vault\Models\Vault;
 class VaultController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function __construct(
+        protected VaultService $vaultService
+    ) {}
+
+    public function store(StoreVaultRequest $request)
     {
-        return view('vault::index');
+        return $this->vaultService->createVault(
+            $request->validated(),
+            auth()->id()
+        );
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function index(Request $request)
     {
-        return view('vault::create');
+        return $this->vaultService->getUserVaults(
+            $request->all(),
+            auth()->id()
+        );
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request) {}
-
-    /**
-     * Show the specified resource.
-     */
-    public function show($id)
+    public function show(Vault $vault)
     {
-        return view('vault::show');
+        return $this->vaultService->getVaultDetails(
+            $vault,
+            auth()->id()
+        );
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function pay(Vault $vault)
     {
-        return view('vault::edit');
+        return $this->vaultService->payForVault(
+            $vault,
+            auth()->id()
+        );
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id) {}
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy($id) {}
+    public function disburse(Vault $vault)
+    {
+        return $this->vaultService->disbursedTowallet(
+            $vault,
+            auth()->id()
+        );
+    }
 }

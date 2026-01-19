@@ -21,15 +21,17 @@ class Vault extends Model
         'status',
         'interval',
         'total_amount',
-        'no_of_save',
+        'interval_amount',
+        'duration',
         'start_date',
         'maturity_date',
         'oweing',
-        'last_save'
     ];
 
     protected $cast = [
-        'no_of_save' => 'integer',
+        'oweing' => 'boolean',
+        'start_date' => 'datetime',
+        'maturity_date' => 'datetime',
         'total_amount' => 'decimal:2',
         'status' => VaultStatusEnum::class
     ];
@@ -39,9 +41,9 @@ class Vault extends Model
         return $this->belongsTo(User::class,'owner_id');
     }
 
-    public function amount()
+    public function schedules()
     {
-        return 10;
+        return $this->hasMany(VaultSchedule::class);
     }
     // protected static function newFactory(): VaultFactory
     // {
