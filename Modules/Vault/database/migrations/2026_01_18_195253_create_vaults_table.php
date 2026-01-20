@@ -3,7 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-
+use  Modules\Vault\Enums\VaultStatusEnum;
 return new class extends Migration
 {
     /**
@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('vaults', function (Blueprint $table) {
             $table->id();
             $table->string('description');
-            $table->foreignId('owner_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
 
-            $table->string('status'); // active, completed, defaulted
+            $table->string('status')->default(VaultStatusEnum::LOCKED->value);
             $table->decimal('total_amount', 18, 2);
             $table->decimal('interval_amount', 18, 2);
 

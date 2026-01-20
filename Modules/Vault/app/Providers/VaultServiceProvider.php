@@ -7,6 +7,10 @@ use Illuminate\Support\ServiceProvider;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Modules\Vault\Repositories\Contracts\VaultRepositoryInterface;
+use Modules\Vault\Repositories\VaultRepository;
+use Modules\Vault\Repositories\Contracts\VaultScheduleRepositoryInterface;
+use Modules\Vault\Repositories\VaultScheduleRepository;
 
 class VaultServiceProvider extends ServiceProvider
 {
@@ -36,6 +40,8 @@ class VaultServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
+         $this->app->bind(VaultRepositoryInterface::class, VaultRepository::class);
+         $this->app->bind(VaultScheduleRepositoryInterface::class, VaultScheduleRepository::class);
     }
 
     /**

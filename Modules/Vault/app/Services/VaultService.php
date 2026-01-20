@@ -28,7 +28,7 @@ class VaultService
     {
         try {
             DB::beginTransaction();
-            $vault = $this->vaultRepository->createVault($this->resolveCreateData($data),$creatorId);
+            $vault = $this->vaultRepository->create($this->resolveCreateData($data,$creatorId));
             $this->walletService->debitWallet($creatorId,$vault->interval_amount,WalletTypeEnum::User);
             $this->generateVaultSchedule($vault);
             // Dispatch event
@@ -173,8 +173,8 @@ class VaultService
             if ($vault->owner_id !== $userId) {
                 return $this->error_response('Unauthorized', 403);
             }
-            if($vault->status != VaultStatusEnum::UNLOCKED) return $this->error_response('This Goal can not be disbursed and its not unlocked', 422);
-            // debit wallet
+             if($vault->status != VaultStatusEnum::UNLOCKED->value) return $this->error_response('This Goal can not be disbursed and its not unlocked', 422);
+            // // debit wallet
             $this->walletService->creditWallet(
                 $userId,
                 $vault->total_amount,
@@ -202,7 +202,7 @@ class VaultService
             return $this->error_response('Goal disbursement failed', 400);
         }
     }
-    private function resolveCreateData(array $data)
+    private function resolveCreateData(array $data,int $creatorId)
     {
         $duration = match ($data['interval']) {
             'daily'   => now()->diffInDays($data['maturity_date']),
@@ -210,9 +210,10 @@ class VaultService
             'monthly' => now()->diffInMonths($data['maturity_date']),
         };
         $intervalAmount = round($data['total_amount'] / max(1, $duration), 2);
-        $data['duration'] = $duration;
+        $data['duration'] = round($duration);
         $data['interval_amount'] = $intervalAmount;
         $data['start_date'] = now();
+        $data['owner_id'] = $creatorId;
         return $data;
     }
 

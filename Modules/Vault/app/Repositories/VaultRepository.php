@@ -3,6 +3,7 @@
 
 namespace Modules\Vault\Repositories;
 
+use Illuminate\Database\Eloquent\Collection;
 use Modules\Vault\Repositories\Contracts\VaultRepositoryInterface;
 use Modules\Core\Repositories\CoreRepository;
 use Illuminate\Database\Eloquent\Model;
@@ -42,17 +43,12 @@ class VaultRepository extends CoreRepository implements VaultRepositoryInterface
        return Vault::whereDate('maturity_date', '<', now())->get();
     }
 
-    public function createVault(array $data, int $ownerId): Vault
-    {
-        return $this->create(array_merge($data,['owner_id'=> $ownerId]));
-    }
-
     public function getVaultPayments(int $vaultId){
         return Transaction::where('type',TransactionTypeEnum::Vault)
                 ->where('type_ids', [$vaultId])->get();
      }
 
-     public function maturedAndCompletedVault():Vault
+     public function maturedAndCompletedVault():Collection
      {
         return $this->model->where('status',VaultStatusEnum::COMPLETED)
                 ->where('maturity_date','<',now())

@@ -5,7 +5,7 @@ namespace Modules\Vault\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Vault\Enums\VaultScheduleStatusEnum;
-// use Modules\Vault\Database\Factories\VaultScheduleFactory;
+use Modules\Vault\Database\Factories\VaultScheduleFactory;
 
 class VaultSchedule extends Model
 {
@@ -28,8 +28,8 @@ class VaultSchedule extends Model
     {
         return $this->belongsTo(Vault::class);
     }
-    // protected static function newFactory(): VaultScheduleFactory
-    // {
-    //     // return VaultScheduleFactory::new();
-    // }
+    protected static function newFactory(): VaultScheduleFactory
+    {
+         return VaultScheduleFactory::new();
+    }
 }

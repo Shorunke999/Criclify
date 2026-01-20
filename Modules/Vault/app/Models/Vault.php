@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use Modules\Vault\Enums\VaultStatusEnum;
-// use Modules\Vault\Database\Factories\VaultFactory;
+use Modules\Vault\Database\Factories\VaultFactory;
 
 class Vault extends Model
 {
@@ -45,8 +45,8 @@ class Vault extends Model
     {
         return $this->hasMany(VaultSchedule::class);
     }
-    // protected static function newFactory(): VaultFactory
-    // {
-    //     // return VaultFactory::new();
-    // }
+     protected static function newFactory(): VaultFactory
+     {
+          return VaultFactory::new();
+     }
 }

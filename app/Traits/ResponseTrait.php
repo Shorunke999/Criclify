@@ -22,11 +22,10 @@ trait ResponseTrait
     public function error_response(string $message = "Error", int $code = 500, bool $log = false, ?LogType $type = null)
     {
         $this->logInfo($log, $message, $type);
-
         return response()->json([
             'status' => 'failed',
             'message' => $message,
-        ], $code);
+        ], (intval($code) > 600) ? 500 : $code);
     }
 
     public function reportError(
