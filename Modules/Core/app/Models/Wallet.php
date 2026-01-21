@@ -7,29 +7,61 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Modules\Core\Enums\WalletTypeEnum;
 use Modules\Circle\Models\Circle;
 use App\Models\User;
-// use Modules\Core\Database\Factories\WalletFactory;
+use Illuminate\Support\Str;
+use Modules\Payment\Models\Transaction;
+
 
 class Wallet extends Model
 {
     use HasFactory;
 
      protected $fillable = [
-        'circle_id',
-        'user_id',
+        'walletable_type',
+        'walletable_id',
+        'currency_id',
         'balance',
-        'currency',
-        'type'
+        'wallet_number',
     ];
 
     protected $casts = [
         'balance' => 'decimal:2',
-        'type' => WalletTypeEnum::class
     ];
-
     protected $hidden = [
         'created_at',
         'updated_at',
     ];
+     protected static function booted()
+    {
+        static::creating(function ($wallet) {
+            if (!$wallet->wallet_number) {
+                $wallet->wallet_number = self::generateWalletNumber();
+            }
+        });
+    }
+
+    public function walletable()
+    {
+        return $this->morphTo();
+    }
+
+    public function currency()
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    private static function generateWalletNumber(): string
+    {
+        do {
+            $number = 'WLT' . strtoupper(Str::random(10));
+        } while (self::where('wallet_number', $number)->exists());
+
+        return $number;
+    }
 
     public function circle()
     {

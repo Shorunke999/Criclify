@@ -44,8 +44,9 @@ class VaultRepository extends CoreRepository implements VaultRepositoryInterface
     }
 
     public function getVaultPayments(int $vaultId){
-        return Transaction::where('type',TransactionTypeEnum::Vault)
-                ->where('type_ids', [$vaultId])->get();
+        return Transaction::where('type', TransactionTypeEnum::VaultDeposit)
+                ->where('vault_id', $vaultId)
+                ->get();
      }
 
      public function maturedAndCompletedVault():Collection

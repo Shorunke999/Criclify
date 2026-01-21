@@ -11,9 +11,8 @@ use Modules\Core\Events\AuditLogged;
 use Modules\Payment\Enums\TransactionStatusEnum;
 use Modules\Payment\Enums\TransactionTypeEnum;
 use Modules\Payment\Managers\PaymentManager;
+use Modules\Payment\Models\Transaction;
 use Modules\Payment\Repositories\Contracts\TransactionRepositoryInterface;
-use Modules\Core\Enums\WalletTypeEnum;
-use Modules\Core\Services\WalletService;
 
 class PaymentService
 {
@@ -22,7 +21,6 @@ class PaymentService
     public function __construct(
         protected TransactionRepositoryInterface $transactionRepo,
         protected ContributionRepositoryInterface $contributionRepo,
-        protected WalletService $walletService,
         protected PaymentManager $manager
     ) {
         $this->provider = $this->manager->driver(config('app.payment_driver','paystack'));
@@ -34,13 +32,11 @@ class PaymentService
     public function initiatePayment(array $data): array
     {
         try {
-            $reference = Str::uuid()->toString();
-
+            $reference = $this->transactionRepo->generateTransactionReference();
             $transaction = $this->transactionRepo->create(array_merge($data, [
                 'reference' => $reference,
                 'status' => TransactionStatusEnum::Pending,
             ]));
-
             $providerResponse = $this->provider->initialize([
                 'amount' => $transaction->amount,
                 'reference' => $reference,
@@ -89,14 +85,30 @@ class PaymentService
         }
     }
 
+    public function createTransaction(TransactionTypeEnum $type,
+         TransactionStatusEnum $status = TransactionStatusEnum::Pending,
+         float $amount,
+         int $userId,
+         int $walletId,
+         ?int $circleId = null,
+         ?int $vaultId = null)
+    {
+          return $this->transactionRepo->create([
+                'wallet_id' => $walletId,
+                'user_id' => $userId,
+                'circle_id' => $circleId,
+                'vault_id' => $vaultId,
+                'type' => $type,
+                'amount' => $amount,
+                'reference' => $this->transactionRepo->generateTransactionReference(),
+                'status' => $status,
+            ]);
+    }
     private function processPayment($reference)
     {
         try {
             $transaction = $this->transactionRepo->findBy('reference', $reference);
-            match($transaction->type){
-                TransactionTypeEnum::Contribution => $this->handleContributionPayment($transaction),
-                default => null,
-            };
+            //processpayment would be here
         } catch (Exception $e) {
             $this->reportError($e, 'PaymentService', [
                 'action' => 'process_payment',
@@ -104,69 +116,6 @@ class PaymentService
             ]);
             throw $e;
         }
-    }
-
-    private function handleContributionPayment($transaction)
-    {
-        $contributionIds = $transaction->type_ids ?? [];
-        $amountRemaining = $transaction->amount;
-
-        foreach ($contributionIds as $contributionId) {
-
-            if ($amountRemaining <= 0) break;
-
-            $contribution = $this->contributionRepo
-                ->findBy('id', $contributionId);
-
-            if (! $contribution) continue;
-
-            $due = $contribution->amount - $contribution->paid_amount;
-
-            // FULL PAYMENT
-            if ($amountRemaining >= $due) {
-                $contribution->update([
-                    'paid_amount' => $contribution->amount,
-                    'status' => StatusEnum::Paid,
-                    'paid_at' => now(),
-                ]);
-
-                $this->walletService->creditWallet(
-                    $contribution->circle_id,
-                    $due,
-                    WalletTypeEnum::Circle
-                );
-
-                $amountRemaining -= $due;
-            }
-            // PARTIAL PAYMENT
-            else {
-                $contribution->update([
-                    'paid_amount' => $contribution->paid_amount + $amountRemaining,
-                    'status' => StatusEnum::Partpayment,
-                ]);
-
-                $this->walletService->creditWallet(
-                    $contribution->circle_id,
-                    $amountRemaining,
-                    WalletTypeEnum::Circle
-                );
-
-                $amountRemaining = 0;
-            }
-        }
-        $transaction->status = TransactionStatusEnum::Success;
-        $transaction->save();
-        event(new AuditLogged(
-            action: \App\Enums\AuditAction::CONTRIBUTION_PAID->value,
-            entityType: get_class($transaction),
-            entityId: $transaction->id,
-            userId: $transaction->user_id,
-            metadata: [
-                'amount' => $transaction->amount,
-                'type' => $transaction->type,
-                'type_ids' => $transaction->type_ids,
-            ]
-        ));
     }
 
 }

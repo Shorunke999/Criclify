@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('wallet_id')->constrained();
             $table->foreignId('circle_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('vault_id')->nullable()->constrained()->nullOnDelete();
             $table->string('reference')->unique();
 
             $table->decimal('amount', 18, 2);

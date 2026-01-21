@@ -17,19 +17,4 @@ class WalletRepository extends CoreRepository implements WalletRepositoryInterfa
     {
         $this->model = $wallet;
     }
-    public function wallet(int $id, float $amount, $type): Wallet
-    {
-        $entityColumn = match ($type) {
-            WalletTypeEnum::Circle => 'circle_id',
-            WalletTypeEnum::User   => 'user_id',
-        };
-
-        $wallet = $this->model
-            ->where($entityColumn, $id)
-            ->where('type', $type)
-            ->lockForUpdate()
-            ->firstOrFail();
-        return $wallet;
-    }
-
 }

@@ -16,7 +16,6 @@ use Modules\Circle\Repositories\Contracts\CircleInviteRepositoryInterface;
 use Modules\Core\Events\AuditLogged;
 use Modules\Core\Repositories\Contracts\UserMetaRepositoryInterface;
 use Modules\Referral\Services\ReferralService;
-use Modules\Core\Enums\WalletTypeEnum;
 
 class AuthService
 {
@@ -41,9 +40,7 @@ class AuthService
             $user->assignRole('user');
 
             //create wallet
-            $user->wallet()->create([
-                'type' => WalletTypeEnum::User
-            ]);
+            $user->wallet()->create();
             $this->metaRepo->create([
                 'user_id' => $user->id
             ]);

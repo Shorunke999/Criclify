@@ -3,14 +3,17 @@
 namespace Modules\Vault\Services;
 
 use App\Enums\AuditAction;
+use App\Models\User;
 use App\Traits\ResponseTrait;
 use Modules\Vault\Repositories\Contracts\VaultRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Modules\Core\Events\AuditLogged;
 use Modules\Vault\Models\Vault;
-use  Modules\Core\Services\WalletService;
 use Modules\Core\Enums\WalletTypeEnum;
+use Modules\Payment\Enums\TransactionStatusEnum;
+use Modules\Payment\Enums\TransactionTypeEnum;
+use Modules\Payment\Services\PaymentService;
 use Modules\Vault\Repositories\Contracts\VaultScheduleRepositoryInterface;
 use Modules\Vault\Enums\VaultScheduleStatusEnum;
 use  Modules\Vault\Enums\VaultStatusEnum;
@@ -20,16 +23,17 @@ class VaultService
 
     public function __construct(
         protected VaultRepositoryInterface $vaultRepository,
-        protected WalletService $walletService,
-        protected VaultScheduleRepositoryInterface $scheduleRepo
+        protected VaultScheduleRepositoryInterface $scheduleRepo,
+        protected PaymentService $paymentService
     ) {}
 
     public function createVault(array $data, int $creatorId)
     {
         try {
             DB::beginTransaction();
+            $user = User::find($creatorId);
             $vault = $this->vaultRepository->create($this->resolveCreateData($data,$creatorId));
-            $this->walletService->debitWallet($creatorId,$vault->interval_amount,WalletTypeEnum::User);
+            $user->debitWallet($vault->interval_amount);
             $this->generateVaultSchedule($vault);
             // Dispatch event
             event(new AuditLogged(
@@ -101,7 +105,7 @@ class VaultService
     {
         try {
             DB::beginTransaction();
-
+            $user = User::find($userId);
             if ($vault->owner_id !== $userId) {
                 return $this->error_response('Unauthorized', 403);
             }
@@ -115,12 +119,18 @@ class VaultService
                 return $this->error_response('Vault fully paid', 400);
             }
 
-            // debit wallet
-            $this->walletService->debitWallet(
+            $user->debitWallet($vault->interval_amount);
+            $transaction = $this->paymentService->createTransaction(
+                TransactionTypeEnum::VaultDeposit,
+                TransactionStatusEnum::Success,
+                floatval($vault->interval_amount),
                 $userId,
-                $schedule->amount_due,
-                WalletTypeEnum::User
+                $user->wallet->id,
+                vaultId: $vault->id
             );
+            $transaction->vaultSchedules()->attach($schedule->id, [
+                'amount' => $vault->interval_amount
+            ]);
 
             // mark schedule as paid
             $schedule->update([
@@ -169,16 +179,20 @@ class VaultService
     {
          try {
             DB::beginTransaction();
-
+            $user = User::find($userId);
             if ($vault->owner_id !== $userId) {
                 return $this->error_response('Unauthorized', 403);
             }
              if($vault->status != VaultStatusEnum::UNLOCKED->value) return $this->error_response('This Goal can not be disbursed and its not unlocked', 422);
             // // debit wallet
-            $this->walletService->creditWallet(
+            $user->creditWallet($vault->total_amount);
+             $this->paymentService->createTransaction(
+                TransactionTypeEnum::VaultDisbursement,
+                TransactionStatusEnum::Success,
+                floatval($vault->total_amount),
                 $userId,
-                $vault->total_amount,
-                WalletTypeEnum::User
+                $user->wallet->id,
+                vaultId: $vault->id
             );
             // mark schedule as paid
             $vault->update([

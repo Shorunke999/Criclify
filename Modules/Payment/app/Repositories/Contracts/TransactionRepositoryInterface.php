@@ -7,4 +7,5 @@ use Modules\Core\Repositories\Contracts\BaseRepositoryInterface;
 
 interface TransactionRepositoryInterface extends BaseRepositoryInterface
 {
+    public function generateTransactionReference(): string;
 }

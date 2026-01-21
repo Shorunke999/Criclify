@@ -14,11 +14,12 @@ use Modules\Core\Models\UserMeta;
 use Modules\Referral\Models\Referral;
 use Spatie\Permission\Traits\HasRoles;
 use Modules\Core\Models\Wallet;
+use Modules\Core\Traits\HasWallet;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable,HasRoles,HasApiTokens;
+    use HasFactory, Notifiable,HasRoles,HasApiTokens,HasWallet;
 
     protected $guard_name = 'api';
 
@@ -73,7 +74,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
     public function wallet()
     {
-        return $this->hasOne(Wallet::class,'user_id');
+        return $this->morphOne(Wallet::class, 'walletable');
     }
 
 }

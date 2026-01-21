@@ -20,6 +20,9 @@ use Modules\Core\Events\AuditLogged;
 use Modules\Payment\Enums\TransactionStatusEnum;
 use Modules\Payment\Enums\TransactionTypeEnum;
 use Modules\Core\Enums\WalletTypeEnum;
+use Modules\Core\Models\Wallet;
+use Modules\Payment\Models\Transaction;
+
 class ContributionTest extends TestCase
 {
     use RefreshDatabase;
@@ -100,16 +103,28 @@ class ContributionTest extends TestCase
         $this->assertTrue(true); // event tested separately if needed
     }
     /** @test */
-    public function user_can_initiate_contribution_payment()
+    public function user_can_make_full_contribution_payment()
     {
         $this->actingAsUser();
 
+        // Setup circle and member
         $circle = Circle::factory()->create();
         $member = CircleMember::factory()->create([
             'circle_id' => $circle->id,
             'user_id' => $this->user->id,
         ]);
 
+        // Setup user wallet with sufficient balance
+        $userWallet = $this->user->wallet()->create([
+            'balance' => 5000,
+        ]);
+
+        // Setup circle wallet
+        $circleWallet = $circle->wallet()->create([
+            'balance' => 0,
+        ]);
+
+        // Create contribution
         $contribution = CircleContribution::factory()->create([
             'circle_id' => $circle->id,
             'circle_member_id' => $member->id,
@@ -128,108 +143,62 @@ class ContributionTest extends TestCase
 
         $response->assertOk()
             ->assertJsonStructure([
-                'data' => [
-                    'transaction_id',
-                    'reference',
-                    'authorization_url',
-                ],
+                'message',
+                'data',
             ]);
 
+        // Assert transaction created
         $this->assertDatabaseHas('transactions', [
             'user_id' => $this->user->id,
+            'wallet_id' => $userWallet->id,
             'circle_id' => $circle->id,
             'amount' => 1000,
-            'status' => TransactionStatusEnum::Pending->value,
-        ]);
-    }
-
-    /** @test */
-    public function webhook_marks_contribution_as_paid()
-    {
-        $this->actingAsUser();
-
-        Event::fake();
-
-        $circle = Circle::factory()->create();
-        $circle->wallet()->create([
-            'type' => WalletTypeEnum::Circle
-        ]);
-        $member = CircleMember::factory()->create([
-            'circle_id' => $circle->id,
-            'user_id' => $this->user->id,
+            'type' => TransactionTypeEnum::Contribution->value,
+            'status' => TransactionStatusEnum::Success->value,
         ]);
 
-        $contribution = CircleContribution::factory()->create([
-            'circle_id' => $circle->id,
-            'circle_member_id' => $member->id,
+        // Assert transactable pivot created
+        $transaction = Transaction::where('user_id', $this->user->id)->first();
+        $this->assertDatabaseHas('transactables', [
+            'transaction_id' => $transaction->id,
+            'transactable_id' => $contribution->id,
+            'transactable_type' => get_class($contribution),
             'amount' => 1000,
-            'paid_amount' => 0,
-            'status' => StatusEnum::Pending,
         ]);
 
-        $transaction = \Modules\Payment\Models\Transaction::factory()->create([
-            'user_id' => $this->user->id,
-            'circle_id' => $circle->id,
-            'amount' => 1000,
-            'type' => TransactionTypeEnum::Contribution,
-            'type_ids' => [$contribution->id],
-            'reference' => 'ref-123',
-            'status' => TransactionStatusEnum::Pending,
-        ]);
-
-        $payload = [
-            'event' => 'charge.success',
-            'data' => [
-                'reference' => 'ref-123',
-            ],
-        ];
-        $signature = hash_hmac(
-            'sha512',
-            json_encode($payload),
-            config('payment.paystack.secret_key')
-        );
-
-
-        $response = $this->postJson(
-            '/api/payment/webhooks',
-            $payload,
-            [
-                'x-paystack-signature' => $signature,
-            ]
-        );
-
-
-        $response->assertOk();
-
+        // Assert contribution updated
         $this->assertDatabaseHas('circle_contributions', [
             'id' => $contribution->id,
-            'status' => StatusEnum::Paid->value,
             'paid_amount' => 1000,
+            'status' => StatusEnum::Paid->value,
         ]);
 
-        $this->assertDatabaseHas('transactions', [
-            'id' => $transaction->id,
+        // Assert user wallet debited
+        $this->assertEquals(4000, $userWallet->fresh()->balance);
 
-            'status' => TransactionStatusEnum::Success->value,
-        ]);
-
-        Event::assertDispatched(AuditLogged::class);
+        // Assert circle wallet credited
+        $this->assertEquals(1000, $circleWallet->fresh()->balance);
     }
 
     /** @test */
-    public function partial_payment_updates_contribution_correctly()
+    public function user_can_make_partial_contribution_payment()
     {
         $this->actingAsUser();
-        Event::fake();
+
         $circle = Circle::factory()->create();
-        $circle->wallet()->create(
-            [
-                'type'=> WalletTypeEnum::Circle
-            ]
-        );
         $member = CircleMember::factory()->create([
             'circle_id' => $circle->id,
             'user_id' => $this->user->id,
+        ]);
+
+          // Setup user wallet with sufficient balance
+        $userWallet = $this->user->wallet()->create([
+            'balance' => 5000,
+        ]);
+
+        // Setup circle wallet
+        $circleWallet = $circle->wallet()->create([
+            'balance' => 0,
         ]);
 
         $contribution = CircleContribution::factory()->create([
@@ -240,53 +209,40 @@ class ContributionTest extends TestCase
             'status' => StatusEnum::Pending,
         ]);
 
-        $transaction = \Modules\Payment\Models\Transaction::factory()->create([
-            'user_id' => $this->user->id,
-            'circle_id' => $circle->id,
-            'amount' => 400,
-            'type' => TransactionTypeEnum::Contribution,
-            'type_ids' => [$contribution->id],
-            'reference' => 'partial-ref',
-            'status' => TransactionStatusEnum::Pending,
-        ]);
-
-         $payload = [
-            'event' => 'charge.success',
-            'data' => [
-                'reference' => 'partial-ref',
-            ],
-        ];
-        $signature = hash_hmac(
-            'sha512',
-            json_encode($payload),
-            config('payment.paystack.secret_key')
-        );
-
-
         $response = $this->postJson(
-            '/api/payment/webhooks',
-            $payload,
+            "/api/members/{$member->id}/contributions/pay",
             [
-                'x-paystack-signature' => $signature,
+                'amount' => 700,
+                'contribution_id' => $contribution->id,
             ]
         );
 
         $response->assertOk();
 
-        $this->assertDatabaseHas('circle_contributions', [
-            'id' => $contribution->id,
-            'status' => StatusEnum::Partpayment->value,
-            'paid_amount' => 400,
-        ]);
-
+        // Assert transaction created with partial amount
         $this->assertDatabaseHas('transactions', [
-            'id' => $transaction->id,
-
+            'user_id' => $this->user->id,
+            'amount' => 700,
             'status' => TransactionStatusEnum::Success->value,
         ]);
 
-        Event::assertDispatched(AuditLogged::class);
+        // Assert transactable pivot with partial amount
+        $transaction = Transaction::where('user_id', $this->user->id)->first();
+        $this->assertDatabaseHas('transactables', [
+            'transaction_id' => $transaction->id,
+            'transactable_id' => $contribution->id,
+            'amount' => 700,
+        ]);
+
+        // Assert contribution status is partial
+        $this->assertDatabaseHas('circle_contributions', [
+            'id' => $contribution->id,
+            'paid_amount' => 700,
+            'status' => StatusEnum::Partpayment->value,
+        ]);
+
+        // Assert wallet balances
+        $this->assertEquals(4300, $userWallet->fresh()->balance);
+        $this->assertEquals(700, $circleWallet->fresh()->balance);
     }
-
-
 }

@@ -4,12 +4,16 @@ namespace Modules\Circle\Services;
 use App\Traits\ResponseTrait;
 use Modules\Circle\Repositories\Contracts\ContributionRepositoryInterface;
 use Exception;
+use Illuminate\Support\Collection;
 use Modules\Circle\Enums\StatusEnum;
 use Modules\Circle\Events\ContributionOverdueEvent;
 use Modules\Circle\Events\ContributionReminderEvent;
 use Modules\Circle\Models\CircleMember;
 use Modules\Circle\Repositories\Contracts\CircleRepositoryInterface;
 use Modules\Payment\Enums\TransactionTypeEnum;
+use Illuminate\Support\Facades\DB;
+use Modules\Payment\Enums\TransactionStatusEnum;
+use Modules\Payment\Repositories\Contracts\TransactionRepositoryInterface;
 use Modules\Payment\Services\PaymentService;
 
 class ContributionService
@@ -19,6 +23,7 @@ class ContributionService
     public function __construct(
         protected CircleRepositoryInterface $circleRepo,
         protected ContributionRepositoryInterface $contributionRepo,
+        protected TransactionRepositoryInterface $transactionRepo,
         protected PaymentService $paymentService
     ) {}
 
@@ -69,7 +74,8 @@ class ContributionService
     ?int $contributionId = null
     ) {
         try {
-            $userId = auth()->id();
+            DB::beginTransaction();
+            $user = auth()->user();
 
             $member = CircleMember::where('id', $memberId)
                 ->firstOrFail();
@@ -82,21 +88,26 @@ class ContributionService
             if ($contributions->isEmpty()) {
                 return $this->error_response('No payable contribution found', 422);
             }
+            $user->debitWallet($data['amount']);
 
-            $transactionData = [
-                'user_id' => $userId,
-                'circle_id' => $member->circle_id,
-                'type' => TransactionTypeEnum::Contribution,
-                'amount' => $data['amount'],
-                'type_ids' => $contributions->pluck('id')->all()
-            ];
+            $transaction = $this->paymentService->createTransaction(
+                TransactionTypeEnum::Contribution,
+                TransactionStatusEnum::Success,
+                floatval($data['amount']),
+                $user->id,
+                $user->wallet->id,
+                $member->circle_id
+            );
+            // Process contribution payments
+            $this->processContributionPayment($transaction, $contributions);
+            // Credit circle wallet
+            $member->circle->creditWallet($data['amount']);
 
-            $payment = $this->paymentService
-                ->initiatePayment($transactionData);
-
-            return $this->success_response($payment, 'Payment initiated');
+            DB::commit();
+            return $this->success_response([], 'COntribution Payment Successfull');
 
         } catch (Exception $e) {
+            DB::rollBack();
             $this->reportError($e, 'ContributionService', [
                 'action' => 'pay_for_contribution',
             ]);
@@ -136,5 +147,48 @@ class ContributionService
         }
 
         return $contribution;
+    }
+
+    private function processContributionPayment($transaction, Collection $contributions)
+    {
+        $remaining = $transaction->amount;
+        foreach ($contributions as $contribution) {
+
+            if ($remaining <= 0) break;
+
+            $due = $contribution->amount - $contribution->paid_amount;
+            $allocated = min($remaining, $due);
+            $remaining -= $allocated;
+
+            // Attach contribution to transaction via transactables pivot
+            $transaction->contributions()->attach($contribution->id, [
+                'amount' => $allocated
+            ]);
+
+            // Update contribution
+            $newPaidAmount = $contribution->paid_amount + $allocated;
+            $isPaid = $newPaidAmount >= $contribution->amount;
+
+            $contribution->update([
+                'paid_amount' => $newPaidAmount,
+                'status' => $isPaid ? StatusEnum::Paid : StatusEnum::Partpayment,
+                'paid_at' => $isPaid ? now() : $contribution->paid_at,
+            ]);
+
+        }
+
+        event(new \Modules\Core\Events\AuditLogged(
+            action: \App\Enums\AuditAction::CONTRIBUTION_PAID->value,
+            entityType: get_class($transaction),
+            entityId: $transaction->id,
+            userId: $transaction->user_id,
+            metadata: [
+                'amount' => $transaction->amount,
+                'from_wallet_id' => auth()->user()->wallet->id,
+                'to_entity_type' => 'circle',
+                'to_entity_id' => $transaction->circle_id,
+                'contribution_ids' => $contributions->pluck('id')->values()->all()
+            ]
+        ));
     }
 }

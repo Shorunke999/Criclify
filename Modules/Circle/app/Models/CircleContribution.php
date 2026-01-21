@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Circle\Database\Factories\CircleContributionFactory;
 use Modules\Circle\Enums\StatusEnum;
+use Modules\Payment\Models\Transaction;
 
 // use Modules\Circle\Database\Factories\CircleContributionFactory;
 
@@ -57,5 +58,11 @@ class CircleContribution extends Model
     public function member(): BelongsTo
     {
         return $this->belongsTo(CircleMember::class, 'circle_member_id');
+    }
+    public function transactions()
+    {
+        return $this->morphToMany(Transaction::class, 'transactable')
+            ->withPivot('amount')
+            ->withTimestamps();
     }
 }

@@ -30,8 +30,6 @@ class Vault extends Model
 
     protected $cast = [
         'oweing' => 'boolean',
-        'start_date' => 'datetime',
-        'maturity_date' => 'datetime',
         'total_amount' => 'decimal:2',
         'status' => VaultStatusEnum::class
     ];

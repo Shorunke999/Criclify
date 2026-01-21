@@ -11,15 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-         Schema::create('wallets', function (Blueprint $table) {
+        Schema::create('transactables', function (Blueprint $table) {
             $table->id();
-            $table->morphs('walletable');
-            $table->string('wallet_number')->unique();
-            $table->decimal('balance', 18, 2)->default(0.00);
-            $table->string('currency_id', 3)->default('NGN');
-
+            $table->foreignId('transaction_id')->constrained()->onDelete('cascade');
+            $table->morphs('transactable'); // transactable_id, transactable_type
+            $table->decimal('amount', 20, 2); // Amount allocated to this specific entity
             $table->timestamps();
-
         });
     }
 
@@ -28,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('wallets');
+        Schema::dropIfExists('transactables');
     }
 };

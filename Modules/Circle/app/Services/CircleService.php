@@ -33,9 +33,7 @@ class CircleService
         try {
             DB::beginTransaction();
             $circle = $this->circleRepository->createCircle($data, $creatorId);
-            $circle->wallet()->create([
-                'type' =>WalletTypeEnum::Circle
-            ]);
+            $circle->wallet()->create();
             // Dispatch event
             event(new AuditLogged(
                 action: AuditAction::CIRCLE_CREATED->value,

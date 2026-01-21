@@ -15,10 +15,12 @@ use Modules\Circle\Enums\{
     PositionSelectionMethodEnum
 };
 use Modules\Core\Models\Wallet;
+use Modules\Core\Traits\HasWallet;
+use Modules\Payment\Models\Transaction;
 
 class Circle extends Model
 {
-    use HasFactory;
+    use HasFactory,HasWallet;
 
     /**
      * The attributes that are mass assignable.
@@ -63,7 +65,7 @@ class Circle extends Model
 
     public function wallet()
     {
-        return $this->hasOne(Wallet::class,'circle_id');
+        return $this->morphOne(Wallet::class,'walletable');
     }
 
     public function invites()

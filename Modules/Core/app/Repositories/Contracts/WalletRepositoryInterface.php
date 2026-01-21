@@ -9,5 +9,4 @@ use Modules\Core\Models\Wallet;
 
 interface WalletRepositoryInterface extends BaseRepositoryInterface
 {
-    public function wallet(int $id, float $amount,WalletTypeEnum $type): Wallet;
 }
