@@ -216,6 +216,7 @@ class VaultService
             return $this->error_response('Goal disbursement failed', 400);
         }
     }
+
     private function resolveCreateData(array $data,int $creatorId)
     {
         $duration = match ($data['interval']) {
