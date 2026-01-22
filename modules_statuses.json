@@ -8,5 +8,6 @@
     "Circle": true,
     "Notification": true,
     "Payment": true,
-    "Vault": true
+    "Vault": true,
+    "Location": true
 }

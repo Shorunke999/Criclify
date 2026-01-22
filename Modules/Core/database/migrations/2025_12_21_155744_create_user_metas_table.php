@@ -17,7 +17,7 @@ return new class extends Migration
                 ->unique()
                 ->constrained()
                 ->cascadeOnDelete();
-
+            $table->foreignId('country_id')->nullable()->constrained();
             // Referral
             $table->string('referral_code')->nullable()->unique();
             $table->unsignedInteger('referral_count')->default(0);

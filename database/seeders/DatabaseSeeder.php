@@ -2,10 +2,12 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AccountStatus;
 use App\Models\User;
 use Database\Factories\PostFactory;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,8 +18,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+
         $this->call([
             RolesAndPermissionsSeeder::class,
         ]);
+
+        $admin = User::firstOrCreate([
+            'first_name' => 'Admin',
+            'last_name' => 'Admin',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password'),
+            'account_status' =>AccountStatus::APPROVED,
+            'email_verified_at' =>now()
+        ]);
+        $admin->assignRole('admin');
     }
 }

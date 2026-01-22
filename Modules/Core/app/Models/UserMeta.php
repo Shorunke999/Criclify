@@ -52,6 +52,11 @@ class UserMeta extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function country()
+    {
+        return $this->belongsTo(Country::class);
+    }
+
     protected static function newFactory(): UserMetaFactory
     {
         return UserMetaFactory::new();

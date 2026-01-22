@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use App\Enums\AccountStatus;
 use App\Enums\KycStatus;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,11 +30,14 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
+        'account_status',
         'email',
         'password',
         'kyc_verified_at',
-        'ndpr_consent'
+        'ndpr_consent',
+        'reviewed_at'
     ];
 
     /**
@@ -58,7 +62,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'kyc_status' => KycStatus::class,
             'kyc_verified_at' => 'datetime',
-            'ndpr_consent' => 'boolean'
+            'ndpr_consent' => 'boolean',
+            'account_status' =>AccountStatus::class
 
         ];
     }

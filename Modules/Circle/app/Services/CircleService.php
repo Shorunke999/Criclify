@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Modules\Auth\Repositories\Contracts\AuthRepositoryInterface;
 use Modules\Circle\Enums\CircleStatusEnum;
 use Modules\Circle\Repositories\Contracts\CircleInviteRepositoryInterface;
 use Modules\Circle\Enums\PositionSelectionMethodEnum;
@@ -26,6 +27,7 @@ class CircleService
     public function __construct(
         protected CircleRepositoryInterface $circleRepository,
         protected CircleInviteRepositoryInterface $inviteRepo,
+        protected AuthRepositoryInterface $authRepo
     ) {}
 
     public function createCircle(array $data, int $creatorId)

@@ -55,7 +55,19 @@ abstract class CoreRepository implements BaseRepositoryInterface
             ? $record->update($data)
             : false;
     }
+    public function firstOrCreate(
+        array $attributes,
+        array $values = []
+    ): Model {
+        return $this->model->firstOrCreate($attributes, $values);
+    }
 
+    public function updateOrCreate(
+        array $attributes,
+        array $values = []
+    ): Model {
+        return $this->model->updateOrCreate($attributes, $values);
+    }
     public function delete(int $id): bool
     {
         $record = $this->find($id);

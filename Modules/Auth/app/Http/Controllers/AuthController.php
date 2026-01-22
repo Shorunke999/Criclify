@@ -4,6 +4,7 @@ namespace Modules\Auth\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Auth\Http\Requests\CreatorInviteRequest;
 use Modules\Auth\Http\Requests\ForgetPassword;
 use Modules\Auth\Http\Requests\LoginRequest;
 use Modules\Auth\Http\Requests\ResetPasswordRequest;
@@ -21,6 +22,7 @@ class AuthController extends Controller
 
     /**
      * Sign up a new user
+     * @unauthenticated
      */
     public function signup(SignupRequest $request)
     {
@@ -28,7 +30,18 @@ class AuthController extends Controller
     }
 
     /**
+     * Sign up with Invite for creator
+     * @unauthenticated
+     */
+    public function creatorInvite(CreatorInviteRequest $request)
+    {
+        return $this->authService->signupCreator(
+            $request->validated()
+        );
+    }
+    /**
      * Login user
+     * @unauthenticated
      */
     public function login(LoginRequest $request)
     {
@@ -37,6 +50,7 @@ class AuthController extends Controller
 
     /**
      * Forgot password
+     * @unauthenticated
      */
     public function forgotPassword(ForgetPassword $request)
     {
@@ -44,6 +58,7 @@ class AuthController extends Controller
     }
     /**
      * Reset password
+     * @unauthenticated
      */
     public function resetPassword(ResetPasswordRequest $request)
     {

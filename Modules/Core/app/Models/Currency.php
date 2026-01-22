@@ -13,10 +13,16 @@ class Currency extends Model
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = [];
+    protected $fillable = ['name', 'code', 'symbol'];
+
+    public function countries()
+    {
+        return $this->hasMany(Country::class);
+    }
 
     // protected static function newFactory(): CurrencyFactory
     // {
     //     // return CurrencyFactory::new();
     // }
 }
+

@@ -19,7 +19,7 @@ trait ResponseTrait
         ], $code);
     }
 
-    public function error_response(string $message = "Error", int $code = 500, bool $log = false, ?LogType $type = null)
+    public function error_response(string $message = "Error", mixed $code = 500, bool $log = false, ?LogType $type = null)
     {
         $this->logInfo($log, $message, $type);
         return response()->json([

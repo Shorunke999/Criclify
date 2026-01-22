@@ -31,5 +31,14 @@ interface BaseRepositoryInterface
 
     public function update(int $id, array $data): bool;
 
+    public function firstOrCreate(
+        array $attributes,
+        array $values = []
+    ): Model;
+     public function updateOrCreate(
+        array $attributes,
+        array $values = []
+    ): Model;
+
     public function delete(int $id): bool;
 }

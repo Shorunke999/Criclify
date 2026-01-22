@@ -25,6 +25,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'user.view',
             'user.update',
             'admin',
+            'can.create.circle',
         ];
 
         foreach ($permissions as $permission) {
@@ -44,11 +45,23 @@ class RolesAndPermissionsSeeder extends Seeder
             'name' => 'admin',
             'guard_name' => 'api',
         ]);
+         $user = Role::firstOrCreate([
+            'name' => 'user',
+            'guard_name' => 'api',
+        ]);
+
+        $creator = Role::firstOrCreate([
+            'name' => 'creator',
+            'guard_name' => 'api',
+        ]);
 
         // ASSIGN PERMISSIONS
         $user->givePermissionTo([
             'auth.login',
             'auth.logout',
+        ]);
+        $creator->givePermissionTo([
+            'can.create.circle'
         ]);
 
         $admin->givePermissionTo(Permission::all());

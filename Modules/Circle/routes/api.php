@@ -6,25 +6,10 @@ use Modules\Circle\Http\Controllers\ContributionController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('circles')->controller(CircleController::class)->group(function () {
-
-        // Create circle
-        Route::post('/', 'store');
-
         // Join circle
         Route::post('{circleId}/join', 'join');
-
-        // Invite users
-        Route::post('{circleId}/invite', 'invite');
-
         // Accept invite (token-based)
         Route::post('invite/{token}/accept', 'acceptInvite');
-
-        // Shuffle positions
-        Route::post('{circleId}/shuffle', 'shufflePositions');
-
-        //start cycle
-        Route::post('{circleId}/start', 'startCycle');
-
         // Circle details
         Route::get('{circleId}', 'getCircleDetails');
 
@@ -32,6 +17,18 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', 'listUserCircles');
     });
 
+    Route::prefix('circles')->middleware('role:creator')->controller(CircleController::class)->group(function () {
+
+        // Create circle
+        Route::post('/', 'store');
+        // Invite users
+        Route::post('{circleId}/invite', 'invite');
+        // Shuffle positions
+        Route::post('{circleId}/shuffle', 'shufflePositions');
+
+        //start cycle
+        Route::post('{circleId}/start', 'startCycle');
+    });
     Route::controller(ContributionController::class)->group(function () {
         Route::get('contributions', 'index');
 
