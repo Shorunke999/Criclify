@@ -8,6 +8,7 @@ use Database\Factories\PostFactory;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Modules\Core\Database\Seeders\ReferenceCountryAndCurrenciesSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,6 +22,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             RolesAndPermissionsSeeder::class,
+            ReferenceCountryAndCurrenciesSeeder::class
         ]);
 
         $admin = User::firstOrCreate([

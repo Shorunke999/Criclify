@@ -13,7 +13,7 @@ class StoreCountryRequest extends FormRequest
     {
          return [
             'name' => 'required|string',
-            'iso_code' => 'required|string|size:2|unique:countries,iso_code',
+            'iso_code' => 'required|string|size:2',
 
             'currency_name' => 'required|string',
             'currency_code' => 'required|string|size:3',
