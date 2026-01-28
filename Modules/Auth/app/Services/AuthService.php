@@ -26,7 +26,8 @@ class AuthService
     public function __construct(protected AuthRepositoryInterface $authRepo,
     protected UserMetaRepositoryInterface $metaRepo,
     protected ReferralService $referralService,
-    protected CircleInviteRepositoryInterface $inviteRepo)
+    protected CircleInviteRepositoryInterface $inviteRepo,
+    protected OtpService $otpService)
     {}
 
     /**
@@ -38,7 +39,12 @@ class AuthService
 
         try {
             $data['password'] = Hash::make($data['password']);
-
+            if ($this->authRepo->findByEmail($data['email'])) {
+                return $this->error_response(
+                    'An account with this email already exists',
+                    409
+                );
+            }
             $user = $this->createUserWithRole(
                 userData: $data,
                 role: 'user',
@@ -48,7 +54,6 @@ class AuthService
 
             // user-only concerns
             $user->wallet()->create();
-
             $referralData = null;
             if (!empty($data['referral_code'])) {
                 $referralData = $this->referralService->logReferralByCode(
@@ -58,16 +63,21 @@ class AuthService
                 );
             }
 
+
             $this->inviteRepo->linkInviteToUser($user);
-
-            event(new SignupSucessfullEvent($user));
-            $user->sendEmailVerificationNotification();
-
+            // Generate and send OTP
+            $this->otpService->generate($user, 'email_verification');
             DB::commit();
 
+            event(new SignupSucessfullEvent($user));
+
             return $this->success_response(
-                ['user' => $user, 'referral_info' => $referralData],
-                'Email Verification Sent',
+                [
+                    'user' => $user->only(['id', 'email', 'first_name', 'last_name']),
+                    'referral_info' => $referralData,
+                    'message' => 'OTP sent to your email. Please verify to continue.'
+                ],
+                'Signup successful. Please check your email for OTP.',
                 201
             );
 
@@ -145,21 +155,19 @@ class AuthService
     {
 
         try {
-            $accountIsActive = User::where('email',$credentials['email'])
-                ->where('account_status', AccountStatus::APPROVED)
-                ->exists();
-            if(!$accountIsActive) return $this->error_response('Account is not active',401);
             if (!Auth::attempt($credentials)) {
                  return $this->error_response('Invalid credentials', 401);
             }
+             $user = Auth::user();
+            if($user->account_status !== AccountStatus::APPROVED) return $this->error_response('Account is not active',401);
 
-            $user = Auth::user();
             $token = $user->createToken('api-token')->plainTextToken;
             if($user->role('admin')) return  $this->success_response($token, 'Login successful',201);
             $this->inviteRepo->inAppNotifyPendingInvites($user);
             $nextStep = 'none';
 
             if (! $user->hasVerifiedEmail()) {
+                $this->otpService->generate($user, 'email_verification');
                 return $this->error_response('Email not verified', 403);
             } elseif ($user->kyc_status !== KycStatus::VERIFIED) {
                 $nextStep = $user->kyc_status->nextStep();
@@ -180,86 +188,135 @@ class AuthService
     }
 
     /**
-     * Handle forgot password
+     * Verify email with OTP
      */
-    public function forgotPassword(array $data )
+    public function verifyEmailWithOtp(array $data)
     {
         try {
-            $status = Password::sendResetLink($data);
-
-            if ($status !== Password::RESET_LINK_SENT) {
-                return $this->error_response(__($status), 400);
-            }
-
-            return $this->success_response([], 'Password reset link sent to your email', 200);
-
-        } catch (Exception $e) {
-            $this->reportError($e,"Auth",[
-                'action' => 'forgotPassword',
-                'service' => 'authService'
-            ]);
-            return $this->error_response($e->getMessage(), $e->getCode() ?: 400);
-        }
-    }
-
-    public function resetPassword(array $data)
-    {
-        try {
-            $status = Password::reset(
-                $data,
-                function ($user, $password) {
-                    $user->password = Hash::make($password);
-                    $user->save();
-                }
-            );
-
-            if ($status !== Password::PASSWORD_RESET) {
-                return $this->error_response(__($status), 400);
-            }
-
-            return $this->success_response([], 'Password reset successful', 200);
-
-        } catch (Exception $e) {
-             $this->reportError($e,"Auth",[
-                'action' => 'verifyEmail',
-            ]);
-            $this->reportError($e,"Auth",[
-                'action' => 'resetPassword',
-                'service' => 'authService'
-            ]);
-            return $this->error_response($e->getMessage(),$e->getCode() ?: 400);
-        }
-    }
-
-
-     public function verifyEmail( $id, $hash)
-    {
-        try{
-             $user = $this->authRepo->find($id);
+            $user = $this->authRepo->findByEmail($data['email']);
 
             if (!$user) {
                 return $this->error_response('User not found', 404);
-            }
-
-            if (!hash_equals((string)$hash, sha1($user->getEmailForVerification()))) {
-                return $this->error_response('Invalid verification link', 403);
             }
 
             if ($user->hasVerifiedEmail()) {
                 return $this->success_response([], 'Email already verified');
             }
 
+            // Verify OTP
+            $this->otpService->verify($user, $data['otp'], 'email_verification');
+
+            // Mark email as verified
             $user->markEmailAsVerified();
 
-            return $this->success_response([], 'Email verified successfully');
-        }catch(Exception $e){
-            $this->reportError($e,"Auth",[
-                'action' => 'verifyEmail',
-                'service' => 'authService'
-            ]);
-            return $this->error_response($e->getMessage(),$e->getCode() ?: 400);
+            // Generate auth token for mobile
+            $token = $user->createToken('api-token')->plainTextToken;
+
+            return $this->success_response([
+                'token' => $token,
+                'user' => $user->load('wallet'),
+                'next_step' => $user->kyc_status !== KycStatus::VERIFIED
+                    ? $user->kyc_status->nextStep()
+                    : 'none'
+            ], 'Email verified successfully', 200);
+
+        } catch (Exception $e) {
+            return $this->error_response($e->getMessage(), $e->getCode() ?: 400);
         }
     }
+
+    /**
+     * Resend OTP
+     */
+    public function resendOtp(array $data)
+    {
+        try {
+            $user = $this->authRepo->findByEmail($data['email']);
+
+            if (!$user) {
+                return $this->error_response('User not found', 404);
+            }
+
+            if ($user->hasVerifiedEmail()) {
+                return $this->error_response('Email already verified', 400);
+            }
+
+            $this->otpService->resend($user, 'email_verification');
+
+            return $this->success_response(
+                [],
+                'OTP resent successfully. Please check your email.',
+                200
+            );
+
+        } catch (Exception $e) {
+            return $this->error_response($e->getMessage(), $e->getCode() ?: 400);
+        }
+    }
+    /**
+     * Request password reset OTP
+     */
+    public function forgotPassword(array $data)
+    {
+        try {
+            $user = $this->authRepo->findByEmail($data['email']);
+
+            if (!$user) {
+                // Don't reveal if email exists
+                return $this->success_response(
+                    [],
+                    'If an account exists with this email, an OTP has been sent.',
+                    200
+                );
+            }
+
+            $this->otpService->generate($user, 'password_reset');
+
+            return $this->success_response(
+                [],
+                'Password reset OTP sent to your email',
+                200
+            );
+
+        } catch (Exception $e) {
+            return $this->error_response($e->getMessage(), $e->getCode() ?: 400);
+        }
+    }
+
+    /**
+     * Reset password with OTP
+     */
+    public function resetPasswordWithOtp(array $data)
+    {
+        try {
+            $user = $this->authRepo->findByEmail($data['email']);
+
+            if (!$user) {
+                return $this->error_response('User not found', 404);
+            }
+
+            // Verify OTP
+            $this->otpService->verify($user, $data['otp'], 'password_reset');
+
+            // Reset password
+            $user->update([
+                'password' => Hash::make($data['password'])
+            ]);
+
+            // Revoke all tokens
+            $user->tokens()->delete();
+
+            return $this->success_response(
+                [],
+                'Password reset successful. Please login with your new password.',
+                200
+            );
+
+        } catch (Exception $e) {
+            return $this->error_response($e->getMessage(), $e->getCode() ?: 400);
+        }
+    }
+
     /**
      * Handle logout
      */

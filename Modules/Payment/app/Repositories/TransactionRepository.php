@@ -24,4 +24,23 @@ class TransactionRepository extends CoreRepository implements TransactionReposit
         } while (Transaction::where('reference', $reference )->exists());
         return $reference;
     }
+
+    public function getUserTransactions(int $userId, array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        $query = $this->model->query();
+        $query->where('user_id', $userId);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['from_date'])) {
+            $query->where('created_at', '>=', $filters['from_date']);
+        }
+
+        if (isset($filters['to_date'])) {
+            $query->where('created_at', '<=', $filters['to_date']);
+        }
+
+        return $query->paginate($filters['per_page'] ?? 15);
+    }
 }

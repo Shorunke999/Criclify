@@ -22,17 +22,47 @@ class PaystackClient
         ];
     }
 
-    public function initialize(array $payload): array
+    public function createCustomer(array $payload): array
     {
         return Http::withHeaders($this->headers())
-            ->post($this->baseUrl . '/transaction/initialize', $payload)
+            ->post($this->baseUrl . '/customer', $payload)
             ->json();
     }
 
-    public function verify(string $reference): array
+    public function createDepositAccount(array $payload): array
     {
         return Http::withHeaders($this->headers())
-            ->get($this->baseUrl . "/transaction/verify/{$reference}")
+            ->post($this->baseUrl . '/dedicated_account', $payload)
+            ->json();
+    }
+    public function listBanks(array $params = [])
+    {
+        return Http::withHeaders($this->headers())
+            ->get($this->baseUrl . '/bank', $params)
+            ->json();
+    }
+      public function resolveAccount(array $payload): array
+    {
+        return Http::withHeaders($this->headers())
+            ->post($this->baseUrl . '/bank/resolve', $payload)
+            ->json();
+    }
+    public function createRecipient(array $payload)
+    {
+        return Http::withHeaders($this->headers())
+            ->post($this->baseUrl . '/transferrecipient', $payload)
+            ->json();
+    }
+    public function initiateTransfer(array $payload): array
+    {
+        return Http::withHeaders($this->headers())
+            ->post($this->baseUrl . '/transfer', $payload)
+            ->json();
+    }
+    public function validateCustomer(array $payload,$customer_code)
+    {
+        return Http::withHeaders($this->headers())
+            ->post($this->baseUrl . '/'.$customer_code.'/identification', $payload)
             ->json();
     }
 }

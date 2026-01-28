@@ -9,6 +9,7 @@ use Modules\Auth\Http\Requests\ForgetPassword;
 use Modules\Auth\Http\Requests\LoginRequest;
 use Modules\Auth\Http\Requests\ResetPasswordRequest;
 use Modules\Auth\Http\Requests\SignupRequest;
+use Modules\Auth\Http\Requests\VerifyEmailOtpRequest;
 use Modules\Auth\Services\AuthService;
 
 class AuthController extends Controller
@@ -57,12 +58,34 @@ class AuthController extends Controller
         return $this->authService->forgotPassword($request->validated());
     }
     /**
-     * Reset password
+     * Verify email OTP
      * @unauthenticated
      */
+    public function verifyEmail(VerifyEmailOtpRequest $request)
+    {
+        return response()->json(
+            $this->authService->verifyEmailWithOtp($request->validated())
+        );
+    }
+
+    /**
+     * Resend OTP
+     * @unauthenticated
+     */
+    public function resendOtp(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        return response()->json(
+            $this->authService->resendOtp($request->only('email'))
+        );
+    }
+
     public function resetPassword(ResetPasswordRequest $request)
     {
-        return $this->authService->resetPassword($request->validated());
+        return response()->json(
+            $this->authService->resetPasswordWithOtp($request->validated())
+        );
     }
     /**
      * Logout user
@@ -72,13 +95,5 @@ class AuthController extends Controller
         $user = $request->user(); // authenticated user via Sanctum
 
         return $this->authService->logout($user);
-    }
-
-    /**
-     * Verify email endpoint
-     */
-    public function verifyEmail($id, $hash)
-    {
-        return $this->authService->verifyEmail($id,$hash);
     }
 }

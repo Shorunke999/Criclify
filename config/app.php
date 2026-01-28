@@ -124,5 +124,7 @@ return [
     ],
 
     'pre_launch' => env('PRE_LAUNCH',true),
-    'base_url' => env('APP_URL','127.0.0.1:8000')
+    'base_url' => env('APP_URL','127.0.0.1:8000'),
+
+    'bank_driver' => env('BANK_DRIVER','paystack'),
 ];

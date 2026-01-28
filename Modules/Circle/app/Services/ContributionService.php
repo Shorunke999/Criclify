@@ -14,7 +14,7 @@ use Modules\Payment\Enums\TransactionTypeEnum;
 use Illuminate\Support\Facades\DB;
 use Modules\Payment\Enums\TransactionStatusEnum;
 use Modules\Payment\Repositories\Contracts\TransactionRepositoryInterface;
-use Modules\Payment\Services\PaymentService;
+use Modules\Payment\Services\TransactionService;
 
 class ContributionService
 {
@@ -24,7 +24,7 @@ class ContributionService
         protected CircleRepositoryInterface $circleRepo,
         protected ContributionRepositoryInterface $contributionRepo,
         protected TransactionRepositoryInterface $transactionRepo,
-        protected PaymentService $paymentService
+        protected TransactionService $transactionService
     ) {}
 
     public function contributionReminder():void{
@@ -90,14 +90,7 @@ class ContributionService
             }
             $user->debitWallet($data['amount']);
 
-            $transaction = $this->paymentService->createTransaction(
-                TransactionTypeEnum::Contribution,
-                TransactionStatusEnum::Success,
-                floatval($data['amount']),
-                $user->id,
-                $user->wallet->id,
-                $member->circle_id
-            );
+            $transaction = $this->transactionService->contributeToCircle($user,$member->circle, $data['amount']);
             // Process contribution payments
             $this->processContributionPayment($transaction, $contributions);
             // Credit circle wallet

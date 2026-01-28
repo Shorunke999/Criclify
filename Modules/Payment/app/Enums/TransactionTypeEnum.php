@@ -5,8 +5,10 @@ enum TransactionTypeEnum: string
 {
     case Contribution = 'contribution';
     case CircleDisbursement = 'circle_disbursement';
+    case CircleCredit = 'circle_credit';
     case VaultDeposit = 'vault_deposit';
     case VaultDisbursement = 'vault_disbursement';
     case Transfer = 'transfer';
     case Withdrawal = 'withdrawal';
+    case Deposit = 'deposit';
 }

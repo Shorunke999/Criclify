@@ -25,7 +25,7 @@ trait ResponseTrait
         return response()->json([
             'status' => 'failed',
             'message' => $message,
-        ], (intval($code) > 600) ? 500 : $code);
+        ], (intval($code) > 600) ? 500 : intval($code));
     }
 
     public function reportError(

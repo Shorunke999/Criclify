@@ -6,8 +6,12 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Modules\Payment\Integrations\Service\PaystackService;
 use Modules\Payment\Managers\Contracts\PaymentContract;
+use Modules\Payment\Repositories\Contracts\ProviderAccountRepositoryInterface;
 use Modules\Payment\Repositories\Contracts\TransactionRepositoryInterface;
+use Modules\Payment\Repositories\Contracts\WithdrawalAccountRepositoryInterface;
+use Modules\Payment\Repositories\ProviderAccountRepository;
 use Modules\Payment\Repositories\TransactionRepository;
+use Modules\Payment\Repositories\WithdrawalAccountRepository;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -40,11 +44,9 @@ class PaymentServiceProvider extends ServiceProvider
     {
         $this->app->register(EventServiceProvider::class);
         $this->app->register(RouteServiceProvider::class);
-         $this->app->bind(
-            PaymentContract::class,
-            PaystackService::class
-        );
         $this->app->bind(TransactionRepositoryInterface::class, TransactionRepository::class);
+        $this->app->bind(WithdrawalAccountRepositoryInterface::class, WithdrawalAccountRepository::class);
+        $this->app->bind(ProviderAccountRepositoryInterface::class, ProviderAccountRepository::class);
     }
 
     /**

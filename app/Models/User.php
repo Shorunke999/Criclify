@@ -16,6 +16,8 @@ use Modules\Referral\Models\Referral;
 use Spatie\Permission\Traits\HasRoles;
 use Modules\Core\Models\Wallet;
 use Modules\Core\Traits\HasWallet;
+use Modules\Payment\Models\ProviderAccount;
+use Modules\Payment\Models\WithdrawalAccount;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -32,9 +34,10 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'first_name',
         'last_name',
-        'account_status',
         'email',
         'password',
+        'account_status',
+        'kyc_status',
         'kyc_verified_at',
         'ndpr_consent',
         'reviewed_at'
@@ -80,6 +83,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function wallet()
     {
         return $this->morphOne(Wallet::class, 'walletable');
+    }
+
+    public function depositAccounts()
+    {
+        return $this->hasMany(ProviderAccount::class,'user_id');
+    }
+    public function withdrawalAccounts()
+    {
+        return $this->hasMany(WithdrawalAccount::class,'user_id');
     }
 
 }

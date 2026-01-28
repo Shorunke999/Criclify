@@ -20,8 +20,7 @@ class ReferenceCountryAndCurrenciesSeeder extends Seeder
         DB::transaction(function () {
             $response = Http::get('https://restcountries.com/v3.1/all',[
             'fields' => 'name,cca2,currencies,idd'
-        ]);
-
+            ]);
             if (! $response->successful()) {
                 throw new Exception('Failed to fetch countries data');
             }

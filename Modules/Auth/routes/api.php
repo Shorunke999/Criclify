@@ -10,8 +10,9 @@ Route::prefix('auth')->controller(AuthController::class)->group(function () {
     Route::post('creator/invite','creatorInvite');
     Route::post('login', 'login');
     Route::post('forgot-password', 'forgotPassword');
-    Route::get('email/verify/{id}/{hash}', 'verifyEmail');
+    Route::post('verify-email', 'verifyEmail');
     Route::post('reset-password', 'resetPassword');
+    Route::post('/resend-otp', 'resendOtp');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', 'logout');
@@ -35,12 +36,4 @@ Route::middleware(['auth:sanctum', 'role:admin'])
 
         Route::post('creators/{userId}/deny','deny');
 });
-// ============================================
-    //KYC ROUTES
-// ============================================
-Route::middleware(['auth:sanctum'])->prefix('kyc')->group(function () {
-    Route::post('/verify', [KycController::class, 'submitVerification']);
-    Route::get('/status', [KycController::class, 'getVerificationStatus']);
-});
-Route::post('/kyc/callback', [KycController::class, 'handleCallback']);
 

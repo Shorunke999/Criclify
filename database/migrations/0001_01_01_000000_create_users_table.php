@@ -18,9 +18,9 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
-            $table->string('account_status')->default('pending');
             $table->boolean('ndpr_consent')->default(false);
-            $table->string('kyc_status')->default('none');
+            $table->string('account_status')->default('approved');
+            $table->string('kyc_status')->default('pending');
             $table->timestamp('kyc_verified_at')->nullable();
             $table->timestamp('reviewed_at')->nullable();
             $table->rememberToken();
