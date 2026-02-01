@@ -2,20 +2,19 @@
 namespace Modules\Auth\Services;
 
 use App\Enums\AccountStatus;
-use App\Enums\AuditAction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Modules\Auth\Repositories\Contracts\AuthRepositoryInterface;
 use Exception;
-use Illuminate\Support\Facades\Password;
 use App\Enums\KycStatus;
 use App\Models\User;
 use App\Traits\ResponseTrait;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Modules\Auth\Events\SignupSucessfullEvent;
 use Modules\Circle\Repositories\Contracts\CircleInviteRepositoryInterface;
-use Modules\Core\Events\AuditLogged;
+use Modules\Cooperative\Enums\CooperativeStatusEnum;
+use Modules\Cooperative\Repositories\Contracts\CooperativeRepositoryInterface;
 use Modules\Core\Repositories\Contracts\UserMetaRepositoryInterface;
 use Modules\Referral\Services\ReferralService;
 
@@ -27,7 +26,8 @@ class AuthService
     protected UserMetaRepositoryInterface $metaRepo,
     protected ReferralService $referralService,
     protected CircleInviteRepositoryInterface $inviteRepo,
-    protected OtpService $otpService)
+    protected OtpService $otpService,
+    protected CooperativeRepositoryInterface $cooperativeRepo)
     {}
 
     /**
@@ -45,9 +45,8 @@ class AuthService
                     409
                 );
             }
-            $user = $this->createUserWithRole(
+            $user = $this->createUser(
                 userData: $data,
-                role: 'user',
                 meta: [],
                 status: AccountStatus::APPROVED
             );
@@ -90,48 +89,40 @@ class AuthService
     /**
      * Handle Creator Invite
      */
-    public function signupCreator(array $data)
+    public function signupRole(array $data)
     {
         DB::beginTransaction();
 
         try {
             $existingUser = $this->authRepo->findByEmail($data['email']);
             if ($existingUser) {
-                if (! $existingUser->hasRole('creator')) {
+                if (! $existingUser->hasRole($data['role'])) {
                     return $this->error_response(
                         'An account with this email already exists',
                         409
                     );
                 }
 
-                return match ($existingUser->account_status) {
+                return match ($existingUser->account_status){
                     AccountStatus::APPROVED =>
                         $this->error_response(
-                            'Your creator account is already approved. Please login.',
+                            'Your account is already approved. Please login.',
                             409
                         ),
 
                     AccountStatus::PENDING =>
                         $this->success_response(
                             [],
-                            'Your creator account is currently under review'
+                            'Your account is currently under review'
                         ),
 
                     AccountStatus::DENIED =>
                         $this->reopenCreatorAccount($existingUser, $data),
                 };
             }
-
-            $meta = [
-                'country_id' => $data['country_id'],
-                'occupation' => $data['occupation'],
-                'phone_number' => $data['phone_number'],
-            ];
-            unset($data['occupation'], $data['phone_number'],$data['country_id']);
             $this->createUserWithRole(
-                userData: $data,
-                role: 'creator',
-                meta: $meta,
+                data: $data,
+                role: $data['role'],
                 status: AccountStatus::PENDING
             );
 
@@ -351,11 +342,25 @@ class AuthService
         );
     }
     protected function createUserWithRole(
-    array $userData,
+    array $data,
     string $role,
-    array $meta = [],
     AccountStatus $status
-    ): User {
+    ){
+        $userData = Arr::only($data, [
+            'first_name',
+            'last_name',
+            'email',
+        ]);
+        $meta = Arr::only($data, [
+            'country_id',
+            'occupation',
+            'phone_number',
+            'role_in_org',
+            'experience',
+            'type_of_group',
+            'group_duration',
+            'can_enforce_rules_off_app',
+        ]);
         $userData['account_status'] = $status;
         $user = $this->authRepo->create($userData);
 
@@ -365,18 +370,64 @@ class AuthService
             'user_id' => $user->id,
             ...$meta,
         ]);
+        if($role === 'cooperative')
+        {
+            $cooperativeData = Arr::only($data, [
+                'country_id',
+                'organisation_name',
+                'organisation_type',
+                'organisation_reg_number',
+                'organisation_established_year',
+                'approx_member_number',
+                'has_existing_scheme',
+                'current_contribution_management',
+                'governance_structure',
+                'intended_api_usage',
+                'organisation_handles_payments',
+                'has_internal_default_rules',
+            ]);
+             $this->cooperativeRepo->create([
+                'owner_id'    => $user->id,
+                'status' => CooperativeStatusEnum::Pending,
+                ...$cooperativeData,
+             ]);
+             
+        }
+        $user->inviteCompliance()->create([
+            'creator_context' => $data['role'] === 'creator'
+                ? Arr::only($data, [
+                    'collection_methods',
+                    'number_of_members',
+                    'expected_monthly_contribution',
+                    'contribution_frequency',
+                    'missed_contribution_handling',
+                ])
+                : null,
 
-        event(new AuditLogged(
-            userId: $user->id,
-            action: AuditAction::NDPR_CONSENT_GIVEN->value,
-            entityType: 'User',
-            entityId: $user->id,
-            metadata: [
-                'consent' => true,
-                'source' => "signup_{$role}"
-            ]
-        ));
+            'organisation_context' => $data['role'] === 'cooperative'
+                ? Arr::only($data, [
+                    'estimated_circle_count',
+                    'intended_api_usage',
+                ])
+                : null,
 
-        return $user;
+            'not_a_bank_acknowledged' => true,
+            'no_fund_safeguard_acknowledged' => true,
+            'fixed_payout_acknowledged' => true,
+            'agree_to_terms' => true,
+
+            'additional_context' => $data['additional_context'] ?? null,
+         ]);
+        return;
     }
+
+    protected function createUser( array $userData,array $meta = [],
+     AccountStatus $status ): User 
+    { 
+        $userData['account_status'] = $status;
+        $user = $this->authRepo->create($userData);
+        $user->assignRole('user');
+        $this->metaRepo->create([ 'user_id' => $user->id, ...$meta, ]);
+        return $user;
+     }
 }

@@ -94,4 +94,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(WithdrawalAccount::class,'user_id');
     }
 
+    public function cooperative()
+    {
+        return $this->hasOne(\Modules\Cooperative\Models\Cooperative::class,'owner_id');
+    }
+    public function inviteCompliance()
+    {
+        return $this->hasOne(\Modules\Auth\Models\InviteCompliances::class,'user_id');
+    }
 }

@@ -4,6 +4,7 @@ namespace Modules\Payment\Managers;
 use Illuminate\Support\Manager;
 use Modules\Payment\Integrations\Service\AnchorService;
 use Modules\Payment\Integrations\Service\PaystackService;
+use Modules\Payment\Integrations\Service\StripeService;
 
 class BankManager extends Manager
 {
@@ -18,6 +19,10 @@ class BankManager extends Manager
     public function createPaystackDriver()
     {
         return app(PaystackService::class);
+    }
+    public function createStripeDriver()
+    {
+        return new StripeService();
     }
     // public function createXDriver()
     // {

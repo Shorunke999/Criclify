@@ -17,6 +17,7 @@ class CreatorRejectionNotification extends Notification implements ShouldQueue
      */
     public function __construct(
         protected User $user,
+        protected string $role,
         protected ?string $reason = null
     ) {}
 
@@ -34,9 +35,9 @@ class CreatorRejectionNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject('Your Creator Application Update')
+            ->subject('Your '.ucfirst($this->role).' Application Update')
             ->greeting("Hello {$this->user->first_name},")
-            ->line('Thank you for applying to become a creator.');
+            ->line('Thank you for applying to become a '.$this->role.'.');
 
         if ($this->reason) {
             $mail->line('Unfortunately, your application was not approved for the following reason:')
@@ -57,7 +58,7 @@ class CreatorRejectionNotification extends Notification implements ShouldQueue
      public function toArray($notifiable): array
     {
         return [
-            'type' => 'creator_rejected',
+            'type' => $this->role.'_rejected',
             'user_id' => $this->user->id,
             'reason' => $this->reason,
         ];

@@ -1,0 +1,11 @@
+{
+    "name": "Cooperative",
+    "alias": "cooperative",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Cooperative\\Providers\\CooperativeServiceProvider"
+    ],
+    "files": []
+}

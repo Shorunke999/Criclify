@@ -9,5 +9,6 @@
     "Notification": true,
     "Payment": true,
     "Vault": true,
-    "Location": true
+    "Location": true,
+    "Cooperative": true
 }

@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Modules\Auth\Repositories\Contracts\AuthRepositoryInterface;
 use Modules\Core\Events\AuditLogged;
 use App\Traits\ResponseTrait;
+use Modules\Cooperative\Enums\CooperativeStatusEnum;
 use Modules\Notification\Notifications\Account\CreatorApprovedNotification;
 use Modules\Notification\Notifications\Account\CreatorRejectionNotification;
 
@@ -23,25 +24,25 @@ class AccountService
     ) {}
 
     /* =========================================================
-     | ADMIN: CREATOR ACCOUNT REVIEW
+     | ADMIN:ACCOUNT REVIEW
      ========================================================= */
 
     public function getPendingCreatorAccounts()
     {
         try {
-            $creators = $this->authRepo->getPendingCreators();
+            $creators = $this->authRepo->getPendingRoles();
 
             return $this->success_response(
                 $creators,
-                'Pending creator accounts retrieved successfully'
+                'Pending accounts retrieved successfully'
             );
         } catch (Exception $e) {
             $this->reportError($e, 'Auth', [
-                'action' => 'get_pending_creator_accounts'
+                'action' => 'get_pending_accounts'
             ]);
 
             return $this->error_response(
-                'Failed to retrieve pending creator accounts',
+                'Failed to retrieve pending accounts',
                 500
             );
         }
@@ -53,9 +54,9 @@ class AccountService
 
         try {
             $user = $this->authRepo->find($userId);
-
-            if (! $user || ! $user->hasRole('creator')) {
-                return $this->error_response('Creator not found', 404);
+            $role = $user->role;
+            if (! $user ||  in_array($role,['creator','cooperative'])) {
+                return $this->error_response(ucfirst($role).' not found', 404);
             }
 
             if ($user->account_status !== AccountStatus::PENDING) {
@@ -71,34 +72,39 @@ class AccountService
                 'email_verified_at' => now(),
             ]);
             $user->wallet()->create();
-
+            if($role === 'cooperative'){
+                $user->cooperative->status = CooperativeStatusEnum::Approved;
+                $user->cooperative->save();
+            }
+            $auditAction = $role == 'cooperative' ? AuditAction::COOPERATIVE_APPROVED->value : AuditAction::CREATOR_APPROVED->value;
             event(new AuditLogged(
                 userId: auth()->id(),
-                action: AuditAction::CREATOR_APPROVED->value,
+                action: $auditAction,
                 entityType: 'User',
                 entityId: $user->id
             ));
 
             $user->notify(new CreatorApprovedNotification(
                 $user,
+                $role,
                 $temporaryPassword
             ));
             DB::commit();
 
             return $this->success_response(
                 [],
-                'Creator account approved successfully'
+                ucfirst($role).' account approved successfully'
             );
         } catch (Exception $e) {
             DB::rollBack();
 
             $this->reportError($e, 'Auth', [
-                'action' => 'approve_creator_account',
+                'action' => 'approve_'.$role.'_account',
                 'user_id' => $userId
             ]);
 
             return $this->error_response(
-                'Failed to approve creator account',
+                'Failed to approve '.$role.' account',
                 500
             );
         }
@@ -110,9 +116,9 @@ class AccountService
 
         try {
             $user = $this->authRepo->find($userId);
-
-            if (! $user || ! $user->hasRole('creator')) {
-                return $this->error_response('Creator not found', 404);
+            $role = $user->role;
+            if (! $user ||  in_array($role,['creator','cooperative'])) {
+                return $this->error_response(ucfirst($role).' not found', 404);
             }
 
             if ($user->account_status !== AccountStatus::PENDING) {
@@ -126,6 +132,7 @@ class AccountService
 
             $user->notify(new  CreatorRejectionNotification(
                 $user,
+                $role,
                 $reason,
             ));
 
@@ -133,13 +140,13 @@ class AccountService
 
             return $this->success_response(
                 [],
-                'Creator account rejected successfully'
+                ucfirst($role).' account rejected successfully'
             );
         } catch (Exception $e) {
             DB::rollBack();
 
             $this->reportError($e, 'Auth', [
-                'action' => 'deny_creator_account',
+                'action' => 'deny_account',
                 'user_id' => $userId
             ]);
 

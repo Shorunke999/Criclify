@@ -17,6 +17,7 @@ class CreatorApprovedNotification extends Notification implements ShouldQueue
      */
      public function __construct(
         protected User $user,
+        protected string $role,
         protected string $password
     ) {}
 
@@ -36,9 +37,9 @@ class CreatorApprovedNotification extends Notification implements ShouldQueue
         $frontendUrl = config('app.frontend_url');
 
         return (new MailMessage)
-            ->subject('Your Creator Account Has Been Approved 🎉')
+            ->subject('Your '.ucfirst($this->role).' Account Has Been Approved 🎉')
             ->greeting("Hello {$this->user->first_name},")
-            ->line('Great news! Your creator account has been approved.')
+            ->line('Great news! Your '.$this->role.' account has been approved.')
             ->line('To get started, Yout  password is {$this->password}')
             ->line('If you did not request this, you can safely ignore this email.')
             ->salutation('Welcome onboard, ' . config('app.name'));
@@ -50,7 +51,7 @@ class CreatorApprovedNotification extends Notification implements ShouldQueue
      public function toArray($notifiable): array
     {
         return [
-            'type' => 'creator_approved',
+            'type' => $this->role.'_approved',
             'user_id' => $this->user->id,
         ];
     }

@@ -45,13 +45,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'name' => 'admin',
             'guard_name' => 'api',
         ]);
-         $user = Role::firstOrCreate([
-            'name' => 'user',
-            'guard_name' => 'api',
-        ]);
 
         $creator = Role::firstOrCreate([
             'name' => 'creator',
+            'guard_name' => 'api',
+        ]);
+        $cooperative = Role::firstOrCreate([
+            'name' => 'cooperative',
             'guard_name' => 'api',
         ]);
 

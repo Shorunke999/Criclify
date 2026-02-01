@@ -19,10 +19,15 @@ class AuthRepository extends CoreRepository implements AuthRepositoryInterface
     {
         return $this->model->where('email', $email)->first();
     }
-    public function getPendingCreators()
+    public function getPendingRoles()
     {
-        return $this->model->role('creator')
+        return $this->model->role(['creator','cooperative'])
             ->where('account_status', AccountStatus::PENDING)
+             ->with([
+                    'meta',
+                    'cooperative',
+                    'inviteCompliance',
+                ])
             ->latest()
             ->get();
     }

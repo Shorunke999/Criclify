@@ -24,4 +24,5 @@ enum AuditAction: string
     case VAULT_DISBUSED = 'vault_disbursed';
 
     case CREATOR_APPROVED = 'creator_account_approved';
+    case COOPERATIVE_APPROVED = 'cooperative_account_approved';
 }

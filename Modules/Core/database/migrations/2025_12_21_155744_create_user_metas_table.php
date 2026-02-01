@@ -18,6 +18,12 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
             $table->foreignId('country_id')->nullable()->constrained();
+
+            $table->string('role_in_org')->nullable();          // org contact person
+            $table->string('experience')->nullable();           // creator experience
+            $table->string('type_of_group')->nullable();        // creator
+            $table->string('group_duration')->nullable();       // creator
+            $table->boolean('can_enforce_rules_off_app')->nullable();
             // Referral
             $table->string('referral_code')->nullable()->unique();
             $table->unsignedInteger('referral_count')->default(0);

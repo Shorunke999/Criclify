@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Console\Scheduling\Schedule;
 use Modules\Circle\Jobs\ContributionReminderJob;
 use Modules\Circle\Jobs\MarkOverDueContributionJob;
+use Modules\Cooperative\Http\Middleware\AuthenticateCooperative;
 
 (new \Bugsnag\BugsnagLaravel\OomBootstrapper())->bootstrap();
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'coop.api' => AuthenticateCooperative::class
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

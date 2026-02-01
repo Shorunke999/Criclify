@@ -19,8 +19,16 @@ class UserMeta extends Model
      */
     protected $fillable = [
         'user_id',
+        'country_id',
         'referral_code',
         'referral_count',
+
+        'role_in_org',
+        'experience',
+        'type_of_group',
+        'group_duration',
+        'can_enforce_rules_off_app',
+
 
         'account_number',
         'alternate_account_number',
@@ -29,7 +37,6 @@ class UserMeta extends Model
         'data',
 
     ];
-
     protected $table = 'user_metas';
 
     protected $casts = [

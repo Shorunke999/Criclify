@@ -31,12 +31,12 @@ class AuthController extends Controller
     }
 
     /**
-     * Sign up with Invite for creator
+     * Sign up with Invite for Organisation or Creator
      * @unauthenticated
      */
     public function creatorInvite(CreatorInviteRequest $request)
     {
-        return $this->authService->signupCreator(
+        return $this->authService->signupRole(
             $request->validated()
         );
     }
